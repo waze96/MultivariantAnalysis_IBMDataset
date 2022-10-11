@@ -54,8 +54,8 @@ packages.check <- lapply(requiredPackages, FUN = function(x) {
 ## 1.1 Load Data
 
 ```{r, echo=TRUE}
-df <- read.csv("C:/Users/jordi/Desktop/mva/data_mva.csv")
-#df <- read.csv("~/Documents/UPC/1Q/MultivariateAnalysis_MVVA/Labs/D1/WA_Fn-UseC_-HR-Employee-Attrition.csv")
+#df <- read.csv("C:/Users/jordi/Desktop/mva/data_mva.csv")
+df <- read.csv("~/Documents/UPC/1Q/MultivariateAnalysis_MVVA/Labs/D1/WA_Fn-UseC_-HR-Employee-Attrition.csv")
 ```
 
 ## 1.2 Dataframe basic information
@@ -157,21 +157,13 @@ plotPie <- function(feature, varName) {
   return(plot)
 }
 
-getProbabilityTable <- function(feature) {
-  table <- table(feature)
-  table_prob <- table / sum(table)                                  # Create proportion table
-  table_perc <- paste0(round(table_prob * 100, 2), "%")             # Format percentages
-  names(table_perc) <- names(table_prob * 100)
-  return(table_perc)                                        # Print updated percentage table
-}
-
 # Binary Categorical Variables
 plotPie(df$Attrition, 'Attrition')
 plotPie(df$Gender, 'Gender')
 plotPie(df$Over18, 'Over 18')
 plotPie(df$OverTime, 'Over time')
 
-
+# Categorical
 p0<-plotFreq(df, df$BusinessTravel, 'Business travel')
 p1<-plotFreq(df, df$Department, 'Department')
 p2<-plotFreq(df, df$DistanceFromHome, 'Distance from home')
@@ -218,9 +210,9 @@ for (var1 in factorDf[-length(factorDf)]) {
   j=1
   for(var2 in factorDf3) {
     chisq_test <- chisq.test(var1, var2)
-    if(chisq_test$p.value < 0.05) {
+    if(chisq_test$p.value < 0.01) {
       print(paste0(attributes(factorDf[i])$names, " | ", attributes(factorDf3[j])$names, " | p-value ", chisq_test$p.value))
-      print(table(var1,var2))
+      #print(table(var1,var2))
     }
     j=j+1
   }
