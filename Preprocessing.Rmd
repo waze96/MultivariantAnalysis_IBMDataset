@@ -14,7 +14,7 @@ packages.check <- lapply(requiredPackages, FUN = function(x) {
     library(x, character.only = TRUE)
   }
 })
-#mixtools, MVN, robustbase
+#mixtools, MVN, robustbase, hola
 ```
 
 # Content Table
