@@ -74,6 +74,8 @@ str(df)
 
 ```{r, echo=False}
 
+df$NumCompaniesWorked=df$NumCompaniesWorked+1
+
 df$Attrition=as.factor(df$Attrition)
 
 df$BusinessTravel=as.factor(df$BusinessTravel)
@@ -82,7 +84,9 @@ df$Department=as.factor(df$Department)
 
 # Reduce number of levels from 29 to 7
 df$DistanceFromHome=as.factor(df$DistanceFromHome)
+plotFreq(df, df$DistanceFromHome, 'Distance From Home')
 levels(df$DistanceFromHome) <- c("1", "1", "2", "2", "2", "2", "3", "3", "3", "3", "4", "4", "4", "4", "4", "5", "5", "5", "5", "5", "5", "5", "6", "6", "6", "6", "6", "7", "7")
+plotFreq(df, df$DistanceFromHome, 'Distance From Home')
 
 df$Education=as.factor(df$Education)
 levels(df$Education) <- c('Below College', 'College', 'Bachelor', 'Master', 'Doctor')
@@ -102,7 +106,9 @@ levels(df$JobLevel) <- c('Intern', 'Junior', 'Senior', 'Manager', 'Director')
 
 # Reduce number of levels from 9 to 7
 df$JobRole=as.factor(df$JobRole)
+plotFreq(df, df$JobRole, 'Job Role')
 levels(df$JobRole) <- c("Representatives", "H.R.", "Lab. Tech.", "Manager", "Directors", "Directors", "Research Sci.", "Sales Executive", "Representatives")
+plotFreq(df, df$JobRole, 'Job Role')
 
 df$JobSatisfaction=as.factor(df$JobSatisfaction)
 levels(df$JobSatisfaction) <- c('Low', 'Medium', 'High', 'Very High')
@@ -209,17 +215,28 @@ for (var1 in factorDf[-length(factorDf)]) {
   factorDf3 <- factorDf[-c(1:i)]
   j=1
   for(var2 in factorDf3) {
-    chisq_test <- chisq.test(var1, var2)
-    if(chisq_test$p.value < 0.01) {
-      print(paste0(attributes(factorDf[i])$names, " | ", attributes(factorDf3[j])$names, " | p-value ", chisq_test$p.value))
-      #print(table(var1,var2))
+    if(attributes(factorDf[i])$names != "Attrition" && attributes(factorDf3[j])$names != "Attrition"){
+      chisq_test <- chisq.test(var1, var2)
+      if(chisq_test$p.value < 0.01) {
+        print(paste0(attributes(factorDf[i])$names, " | ", attributes(factorDf3[j])$names, " | p-value ", chisq_test$p.value))
+        #print(table(var1,var2))
+      }
     }
     j=j+1
   }
   i=i+1
 }
 
-
+ggplot(df, aes(Department, ..count..)) + geom_bar(aes(fill = EducationField), position = "dodge")
+ggplot(df, aes(Department, ..count..)) + geom_bar(aes(fill = JobLevel), position = "dodge")
+ggplot(df, aes(Department, ..count..)) + geom_bar(aes(fill = JobRole), position = "dodge")
+ggplot(df, aes(Education, ..count..)) + geom_bar(aes(fill = EducationField), position = "dodge")
+ggplot(df, aes(Education, ..count..)) + geom_bar(aes(fill = JobLevel), position = "dodge")
+ggplot(df, aes(EducationField, ..count..)) + geom_bar(aes(fill = JobLevel), position = "dodge")
+ggplot(df, aes(EducationField, ..count..)) + geom_bar(aes(fill = JobRole), position = "dodge")
+ggplot(df, aes(JobLevel, ..count..)) + geom_bar(aes(fill = JobRole), position = "dodge")
+ggplot(df, aes(JobLevel, ..count..)) + geom_bar(aes(fill = StockOptionLevel), position = "dodge")
+ggplot(df, aes(MaritalStatus, ..count..)) + geom_bar(aes(fill = StockOptionLevel), position = "dodge")
 
 #Tot i tenir pvalue < 0.05, veient les taules de contingencia podem deduir que no son 100% dependents i que per tant no les podem descartar. 
 
@@ -389,12 +406,41 @@ figure_hist_2
 ```{r, echo=False}
 
 mdi = mahalanobis(nonFactorDf,center=apply(nonFactorDf,2,mean),cov=var(nonFactorDf))
-plot(density(mdi))
+plot(density(mdi), main="Density curve of Mahalanobis distance")
 cutoff <- qchisq(p = 0.99 , ncol(nonFactorDf))
+
+# Create new DataFrame to identify which are outliers
+tmpDF<-df
+tmpDF$MultivariateOutlier<-0
+tmpDF[mdi>cutoff,]$MultivariateOutlier<-1
+tmpDF$MultivariateOutlier<-as.factor(tmpDF$MultivariateOutlier)
+
+dfMahalanobisOutliers<-df[mdi>cutoff,]
+
+
 ## Display observation whose distance greater than cutoff value
-nonFactorDf[mdi>cutoff,]
+sapply(nonFactorDf,min)
+sapply(nonFactorDf[mdi>cutoff,],min)
 #nonFactorDf<-data.frame(nonFactorDf[mdi>cutoff,],df[mdi>cutoff,1])
 
+## Color By Outliers (Whole Dataset)
+ggplot(tmpDF, aes(MonthlyIncome, Age, color=MultivariateOutlier))+
+  geom_point()
+ggplot(tmpDF, aes(MonthlyIncome, TotalWorkingYears, color=MultivariateOutlier))+
+  geom_point()
+ggplot(tmpDF, aes(Age, TotalWorkingYears, color=MultivariateOutlier))+
+  geom_point()
+ggplot(tmpDF, aes(PercentSalaryHike, YearsAtCompany, color=MultivariateOutlier))+
+  geom_point()
+
+## Color By JobRole (Only Outliers)
+ggplot(dfMahalanobisOutliers, aes(MonthlyIncome, Age, color=JobRole))+
+  geom_point()
+ggplot(dfMahalanobisOutliers, aes(MonthlyIncome, TotalWorkingYears, color=JobRole))+
+  geom_point()
+
+#tt<-nonFactorDf[(mdi>cutoff),];tt
+#tt<-tt[tt$MonthlyIncome<8000,];tt
 ```
 
 # 5. Derivation of new variables
@@ -440,6 +486,8 @@ df$DifferentManagers[df$DifferentManagers>0]<-1
 df$DifferentManagers<-as.factor(df$DifferentManagers)
 levels(df$DifferentManagers)<-c("No","Yes")
 
+ggplot(dfMahalanobisOutliers, aes(MonthlyIncome, TotalWorkingYears, color=JobRole))+
+  geom_point()
 ```
 
 # 6. Exploratory Data Analysis
