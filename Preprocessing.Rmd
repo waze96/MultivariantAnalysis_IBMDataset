@@ -51,11 +51,31 @@ packages.check <- lapply(requiredPackages, FUN = function(x) {
 
 # 1. Introduction
 
-## 1.1 Load Data
+## 1.1 Load Data and useful functions
 
 ```{r, echo=TRUE}
 #df <- read.csv("C:/Users/jordi/Desktop/mva/data_mva.csv")
 df <- read.csv("~/Documents/UPC/1Q/MultivariateAnalysis_MVVA/Labs/D1/WA_Fn-UseC_-HR-Employee-Attrition.csv")
+
+plotFreq <- function(df, feature, xlabel) {
+  plot<-ggplot(df, aes(x=feature)) +
+        geom_bar(aes(y =(..count..)/sum(..count..))) +
+        geom_text(aes( label = scales::percent((..count..)/sum(..count..)),
+                   y= ((..count..)/sum(..count..)) ), stat= "count", vjust = 1.25, color="#ffffff", size=3) +
+        labs(x=xlabel, y='Percent')+
+        scale_y_continuous(labels = scales::percent)
+  return(plot)
+}
+
+plotPie <- function(feature, varName) {
+  nb <- count(feature)[2];
+  per <- c(round(nb/sum(nb)*100,2))$freq;
+  names <- levels(feature);
+  labs <- paste(names, per, "%");
+  #jpeg(paste(plot_path, data_names[i], ".jpeg", sep = ""), height=800, width=1000)
+  plot<-pie(summary(feature), labels = labs, main=paste("Pie Chart of ",varName));
+  return(plot)
+}
 ```
 
 ## 1.2 Dataframe basic information
@@ -142,26 +162,6 @@ Evaluation of the relevant variables - Priorization and ranking under different 
 ```{r, echo=False}
 
 factorDf <- df[sapply(df, is.factor)]
-
-plotFreq <- function(df, feature, xlabel) {
-  plot<-ggplot(df, aes(x=feature)) +
-        geom_bar(aes(y =(..count..)/sum(..count..))) +
-        geom_text(aes( label = scales::percent((..count..)/sum(..count..)),
-                   y= ((..count..)/sum(..count..)) ), stat= "count", vjust = 1.25, color="#ffffff", size=3) +
-        labs(x=xlabel, y='Percent')+
-        scale_y_continuous(labels = scales::percent)
-  return(plot)
-}
-
-plotPie <- function(feature, varName) {
-  nb <- count(feature)[2];
-  per <- c(round(nb/sum(nb)*100,2))$freq;
-  names <- levels(feature);
-  labs <- paste(names, per, "%");
-  #jpeg(paste(plot_path, data_names[i], ".jpeg", sep = ""), height=800, width=1000)
-  plot<-pie(summary(feature), labels = labs, main=paste("Pie Chart of ",varName));
-  return(plot)
-}
 
 # Binary Categorical Variables
 plotPie(df$Attrition, 'Attrition')
@@ -431,6 +431,12 @@ ggplot(tmpDF, aes(MonthlyIncome, TotalWorkingYears, color=MultivariateOutlier))+
 ggplot(tmpDF, aes(Age, TotalWorkingYears, color=MultivariateOutlier))+
   geom_point()
 ggplot(tmpDF, aes(PercentSalaryHike, YearsAtCompany, color=MultivariateOutlier))+
+  geom_point()
+ggplot(tmpDF, aes(JobRole, YearsAtCompany, color=MultivariateOutlier))+
+  geom_point()
+ggplot(tmpDF, aes(PercentSalaryHike, TotalWorkingYears, color=MultivariateOutlier))+
+  geom_point()
+ggplot(tmpDF, aes(JobRole, TotalWorkingYears, color=MultivariateOutlier))+
   geom_point()
 
 ## Color By JobRole (Only Outliers)
