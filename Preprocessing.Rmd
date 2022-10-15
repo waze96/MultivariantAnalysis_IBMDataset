@@ -54,8 +54,8 @@ packages.check <- lapply(requiredPackages, FUN = function(x) {
 ## 1.1 Load Data
 
 ```{r, echo=TRUE}
-#df <- read.csv("C:/Users/jordi/Desktop/mva/data_mva.csv")
-df <- read.csv("~/Documents/UPC/1Q/MultivariateAnalysis_MVVA/Labs/D1/WA_Fn-UseC_-HR-Employee-Attrition.csv")
+df <- read.csv("D:/2_Master/Q1/MA/mva_project/data_mva.csv")
+#df <- read.csv("~/Documents/UPC/1Q/MultivariateAnalysis_MVVA/Labs/D1/WA_Fn-UseC_-HR-Employee-Attrition.csv")
 ```
 
 ## 1.2 Dataframe basic information
