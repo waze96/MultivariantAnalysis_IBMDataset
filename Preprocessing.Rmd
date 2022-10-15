@@ -415,15 +415,22 @@ tmpDF$MultivariateOutlier<-0
 tmpDF[mdi>cutoff,]$MultivariateOutlier<-1
 tmpDF$MultivariateOutlier<-as.factor(tmpDF$MultivariateOutlier)
 
-dfMahalanobisOutliers<-df[mdi>cutoff,]
-dfMahalanobisNonOutliers<-df[mdi<=cutoff,]
-
+monthlyIncomeMean<-mean(df$MonthlyIncome)
 
 ## Display mean for Whole dataset, non multivariate outliers and multivariate outliers
-all.means <- apply(nonFactorDf, 2, mean)
-mean(nonFactorDf)
-mean(nonFactorDf[mdi<=cutoff,])
-mean(nonFactorDf[mdi>cutoff,])
+apply(nonFactorDf, 2, mean)
+apply(nonFactorDf[mdi<=cutoff,], 2, mean)
+apply(nonFactorDf[mdi>cutoff,], 2, mean)
+
+# Non Outliers individuals
+dfMahalanobisNonOutliers<-df[mdi<=cutoff,]
+
+# Outliers individuals
+dfMahalanobisOutliers<-df[mdi>cutoff,]
+
+# Subgroup found in Outliers individuals
+dfMahalanobisOutliers2<-dfMahalanobisOutliers[dfMahalanobisOutliers$MonthlyIncome<monthlyIncomeMean,]
+dfMahalanobisOutliers2[,c("Age","MonthlyIncome","NumCompaniesWorked","TotalWorkingYears","YearsAtCompany","YearsInCurrentRole","YearsSinceLastPromotion","YearsWithCurrManager")]
 
 
 ## Color By Outliers (Whole Dataset)
@@ -448,8 +455,6 @@ ggplot(dfMahalanobisOutliers, aes(MonthlyIncome, Age, color=JobRole))+
 ggplot(dfMahalanobisOutliers, aes(MonthlyIncome, TotalWorkingYears, color=JobRole))+
   geom_point()
 
-#tt<-nonFactorDf[(mdi>cutoff),];tt
-#tt<-tt[tt$MonthlyIncome<8000,];tt
 ```
 
 # 5. Derivation of new variables
