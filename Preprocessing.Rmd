@@ -31,7 +31,7 @@ packages.check <- lapply(requiredPackages, FUN = function(x) {
 
     3.1 Categorical
 
-    3.1.1 Contingency Table
+    3.1.1 Contingency Tables
 
     3.2 Numerical
 
@@ -48,6 +48,10 @@ packages.check <- lapply(requiredPackages, FUN = function(x) {
 7.  Unbalanced Dataset
 
 8.  Normalitzation
+
+9.  Rank new variables
+
+10. Save the new datasets
 
 # 1. Introduction
 
@@ -76,6 +80,7 @@ plotPie <- function(feature, varName) {
   plot<-pie(summary(feature), labels = labs, main=paste("Pie Chart of ",varName));
   return(plot)
 }
+
 ```
 
 ## 1.2 Dataframe basic information
@@ -84,6 +89,7 @@ Show a summary of the current dataframe.
 
 ```{r, echo=TRUE}
 str(df)
+
 ```
 
 # 2. Formatting issues
@@ -237,9 +243,6 @@ ggplot(df, aes(JobLevel, ..count..)) + geom_bar(aes(fill = JobRole), position = 
 ggplot(df, aes(JobLevel, ..count..)) + geom_bar(aes(fill = StockOptionLevel), position = "dodge")
 ggplot(df, aes(MaritalStatus, ..count..)) + geom_bar(aes(fill = StockOptionLevel), position = "dodge")
 
-#Tot i tenir pvalue < 0.05, veient les taules de contingencia podem deduir que no son 100% dependents i que per tant no les podem descartar. 
-
-#Ajuntar job role i department i alguna altra.
 ```
 
 ## 3.2 Numerical Variables
@@ -430,7 +433,7 @@ dfMahalanobisOutliers<-df[mdi>cutoff,]
 
 # Subgroup found in Outliers individuals
 dfMahalanobisOutliers2<-dfMahalanobisOutliers[dfMahalanobisOutliers$MonthlyIncome<monthlyIncomeMean,]
-dfMahalanobisOutliers2[,c("Age","MonthlyIncome","NumCompaniesWorked","TotalWorkingYears","YearsAtCompany","YearsInCurrentRole","YearsSinceLastPromotion","YearsWithCurrManager")]
+dfMahalanobisOutliers2[,c("Age","MonthlyIncome","NumCompaniesWorked","TotalWorkingYears","YearsAtCompany","YearsInCurrentRole","YearsSinceLastPromotion","YearsWithCurrManager")];
 
 
 ## Color By Outliers (Whole Dataset)
@@ -475,17 +478,9 @@ df$SalaryHikePerYear <- df$PercentSalaryHike / df$SalaryHikePerYear
 df$TotalWorkingYears_aux <- df$TotalWorkingYears
 df$TotalWorkingYears_aux[df$TotalWorkingYears_aux == 0] <- 0.5 
 
-df$NumCompaniesWorked_aux <- df$NumCompaniesWorked + 1
+df$AverageYearsCompany <- df$TotalWorkingYears_aux / df$NumCompaniesWorked
 
-df$AverageYearsCompany <- df$TotalWorkingYears_aux / df$NumCompaniesWorked_aux
-
-df$NumCompaniesWorked_aux <- NULL
 df$TotalWorkingYears_aux <- NULL
-
-##  Per no omplir df amb NULLS
-#totalWorkingYears_aux<-df$TotalWorkingYears
-#totalWorkingYears_aux[totalWorkingYears_aux == 0] <- 0.5 
-#df$AverageYearsCompany <- totalWorkingYears_aux / (df$NumCompaniesWorked + 1)
 
 
 #Años para jubilarse
@@ -660,26 +655,6 @@ myvars_2 <- c("Age","DailyRate", "HourlyRate", "MonthlyIncome", "MonthlyRate",
 
 options(contrasts=c("contr.treatment","contr.treatment"))
 
-res.con<-condes(df,14)
-res.con<-condes(df,4, proba= 0.25)
-str(res.con)
-names(res.con)
-res.con$quanti
-res.con$quali
-res.con$category
-
-# Just to try: Let type be the response for example purposes
-names(df)
-res.cat<-catdes(df,num.var=6)
-names(res.cat)
-res.cat$test.chi2
-res.cat$category
-res.cat$quanti.var
-res.cat$quanti
-
-
-
-
 ```
 
 # 9. Rank new variables
@@ -700,5 +675,16 @@ importance <- varImp(model, scale=FALSE)
 print(importance)
 
 plot(importance)
+
+```
+
+# 10. Save the new datasets
+
+```{r, echo=False}
+
+df_PCA_MCA_MFA<-subset(df, select = -c(Department,EducationField))
+save(df_PCA_MCA_MFA, file = "dataframe_PCA_MCA_MFA.Rdata")
+df_MLModels<-df
+save(df_MLModels, file = "dataframe_MLModels.Rdata")
 
 ```
