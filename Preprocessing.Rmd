@@ -51,11 +51,31 @@ packages.check <- lapply(requiredPackages, FUN = function(x) {
 
 # 1. Introduction
 
-## 1.1 Load Data
+## 1.1 Load Data and useful functions
 
 ```{r, echo=TRUE}
-df <- read.csv("D:/2_Master/Q1/MA/mva_project/data_mva.csv")
-#df <- read.csv("~/Documents/UPC/1Q/MultivariateAnalysis_MVVA/Labs/D1/WA_Fn-UseC_-HR-Employee-Attrition.csv")
+#df <- read.csv("C:/Users/jordi/Desktop/mva/data_mva.csv")
+df <- read.csv("~/Documents/UPC/1Q/MultivariateAnalysis_MVVA/Labs/D1/WA_Fn-UseC_-HR-Employee-Attrition.csv")
+
+plotFreq <- function(df, feature, xlabel) {
+  plot<-ggplot(df, aes(x=feature)) +
+        geom_bar(aes(y =(..count..)/sum(..count..))) +
+        geom_text(aes( label = scales::percent((..count..)/sum(..count..)),
+                   y= ((..count..)/sum(..count..)) ), stat= "count", vjust = 1.25, color="#ffffff", size=3) +
+        labs(x=xlabel, y='Percent')+
+        scale_y_continuous(labels = scales::percent)
+  return(plot)
+}
+
+plotPie <- function(feature, varName) {
+  nb <- count(feature)[2];
+  per <- c(round(nb/sum(nb)*100,2))$freq;
+  names <- levels(feature);
+  labs <- paste(names, per, "%");
+  #jpeg(paste(plot_path, data_names[i], ".jpeg", sep = ""), height=800, width=1000)
+  plot<-pie(summary(feature), labels = labs, main=paste("Pie Chart of ",varName));
+  return(plot)
+}
 ```
 
 ## 1.2 Dataframe basic information
@@ -143,26 +163,6 @@ Evaluation of the relevant variables - Priorization and ranking under different 
 
 factorDf <- df[sapply(df, is.factor)]
 
-plotFreq <- function(df, feature, xlabel) {
-  plot<-ggplot(df, aes(x=feature)) +
-        geom_bar(aes(y =(..count..)/sum(..count..))) +
-        geom_text(aes( label = scales::percent((..count..)/sum(..count..)),
-                   y= ((..count..)/sum(..count..)) ), stat= "count", vjust = 1.25, color="#ffffff", size=3) +
-        labs(x=xlabel, y='Percent')+
-        scale_y_continuous(labels = scales::percent)
-  return(plot)
-}
-
-plotPie <- function(feature, varName) {
-  nb <- count(feature)[2];
-  per <- c(round(nb/sum(nb)*100,2))$freq;
-  names <- levels(feature);
-  labs <- paste(names, per, "%");
-  #jpeg(paste(plot_path, data_names[i], ".jpeg", sep = ""), height=800, width=1000)
-  plot<-pie(summary(feature), labels = labs, main=paste("Pie Chart of ",varName));
-  return(plot)
-}
-
 # Binary Categorical Variables
 plotPie(df$Attrition, 'Attrition')
 plotPie(df$Gender, 'Gender')
@@ -230,7 +230,6 @@ for (var1 in factorDf[-length(factorDf)]) {
 ggplot(df, aes(Department, ..count..)) + geom_bar(aes(fill = EducationField), position = "dodge")
 ggplot(df, aes(Department, ..count..)) + geom_bar(aes(fill = JobLevel), position = "dodge")
 ggplot(df, aes(Department, ..count..)) + geom_bar(aes(fill = JobRole), position = "dodge")
-ggplot(df, aes(Education, ..count..)) + geom_bar(aes(fill = EducationField), position = "dodge")
 ggplot(df, aes(Education, ..count..)) + geom_bar(aes(fill = JobLevel), position = "dodge")
 ggplot(df, aes(EducationField, ..count..)) + geom_bar(aes(fill = JobLevel), position = "dodge")
 ggplot(df, aes(EducationField, ..count..)) + geom_bar(aes(fill = JobRole), position = "dodge")
@@ -409,19 +408,23 @@ mdi = mahalanobis(nonFactorDf,center=apply(nonFactorDf,2,mean),cov=var(nonFactor
 plot(density(mdi), main="Density curve of Mahalanobis distance")
 cutoff <- qchisq(p = 0.99 , ncol(nonFactorDf))
 
-# Create new DataFrame to identify which are outliers
+# Create new DataFrame and set a new categorical variable to identify which are multivariate outliers or not
+
 tmpDF<-df
 tmpDF$MultivariateOutlier<-0
 tmpDF[mdi>cutoff,]$MultivariateOutlier<-1
 tmpDF$MultivariateOutlier<-as.factor(tmpDF$MultivariateOutlier)
 
 dfMahalanobisOutliers<-df[mdi>cutoff,]
+dfMahalanobisNonOutliers<-df[mdi<=cutoff,]
 
 
-## Display observation whose distance greater than cutoff value
-sapply(nonFactorDf,min)
-sapply(nonFactorDf[mdi>cutoff,],min)
-#nonFactorDf<-data.frame(nonFactorDf[mdi>cutoff,],df[mdi>cutoff,1])
+## Display mean for Whole dataset, non multivariate outliers and multivariate outliers
+all.means <- apply(nonFactorDf, 2, mean)
+mean(nonFactorDf)
+mean(nonFactorDf[mdi<=cutoff,])
+mean(nonFactorDf[mdi>cutoff,])
+
 
 ## Color By Outliers (Whole Dataset)
 ggplot(tmpDF, aes(MonthlyIncome, Age, color=MultivariateOutlier))+
@@ -431,6 +434,12 @@ ggplot(tmpDF, aes(MonthlyIncome, TotalWorkingYears, color=MultivariateOutlier))+
 ggplot(tmpDF, aes(Age, TotalWorkingYears, color=MultivariateOutlier))+
   geom_point()
 ggplot(tmpDF, aes(PercentSalaryHike, YearsAtCompany, color=MultivariateOutlier))+
+  geom_point()
+ggplot(tmpDF, aes(JobRole, YearsAtCompany, color=MultivariateOutlier))+
+  geom_point()
+ggplot(tmpDF, aes(PercentSalaryHike, TotalWorkingYears, color=MultivariateOutlier))+
+  geom_point()
+ggplot(tmpDF, aes(JobRole, TotalWorkingYears, color=MultivariateOutlier))+
   geom_point()
 
 ## Color By JobRole (Only Outliers)
