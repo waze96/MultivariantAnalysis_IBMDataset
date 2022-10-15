@@ -1,0 +1,63 @@
+---
+title: "PCA"
+output: pdf_document
+date: "2022-10-15"
+---
+
+```{r, setup, include=FALSE, echo=FALSE}
+#knitr::opts_chunk$set(echo = TRUE)
+requiredPackages <- c("ggplot2", "FactoMineR", "factoextra")
+packages.check <- lapply(requiredPackages, FUN = function(x) {
+  if(!require(x, character.only = TRUE)) {
+    install.packages(x, dependencies = TRUE)
+    library(x, character.only = TRUE)
+  }
+})
+#mixtools, MVN, robustbase, hola
+```
+
+# Content Table
+
+1.  Scree plot
+
+
+# 1. Scree plot
+
+```{r, echo=TRUE}
+
+load("~/Documents/UPC/1Q/MultivariateAnalysis_MVVA/Labs/MultivariantAnalysis_IBMDataset/dataframe_PCA_MCA_MFA.Rdata")
+
+numDf <- df_PCA_MCA_MFA[!sapply(df_PCA_MCA_MFA, is.factor)]
+
+pca <- prcomp(numDf, scale = TRUE)
+pca$rotation
+
+fviz_eig(pca, addlabels=TRUE, hjust = -0.3) +
+  ylim(0, 40)
+
+prop_varianza <- pca$sdev^2 / sum(pca$sdev^2)
+prop_varianza
+sum(prop_varianza)
+
+prop_varianza_acum <- cumsum(prop_varianza)
+prop_varianza_acum
+# Les 7 primeres 78.4 % de la varianxa
+
+```
+
+## 1.2 Dataframe basic information
+
+Show a summary of the current dataframe.
+
+```{r, echo=TRUE}
+
+#fviz_pca_ind(pca)
+fviz_pca_ind(pca, geom="point")
+fviz_pca_ind(pca, col.ind="cos2")
+fviz_pca_ind(pca, label="none", habillage=df_PCA_MCA_MFA$Attrition,
+             addEllipses=TRUE, ellipse.level=0.95)
+
+
+fviz_pca_var(pca)
+
+```
