@@ -5,6 +5,8 @@ date: "2022-10-08"
 output: html_document
 ---
 
+TODO: EXPLANATION OF THIS PART
+
 ```{r, setup, include=FALSE, echo=FALSE}
 #knitr::opts_chunk$set(echo = TRUE)
 requiredPackages <- c("ggplot2","rapportools","plyr","cowplot", "ggpubr", "corrplot", "corrplot", "mlbench", "caret", "FactoMineR")
@@ -16,6 +18,7 @@ packages.check <- lapply(requiredPackages, FUN = function(x) {
 })
 
 PROJECT_PATH="~/Documents/UPC/1Q/MultivariateAnalysis_MVVA/Labs/MultivariantAnalysis_IBMDataset"
+
 setwd(PROJECT_PATH)
 
 ```
@@ -24,37 +27,31 @@ setwd(PROJECT_PATH)
 
 1.  Introduction
 
-    1.1 Load Data
+    -   1.1 Load Data
 
-    1.2 DataFrame Basic Information
+    -   1.2 DataFrame Basic Information
 
 2.  Formatting issues
 
 3.  Feature selection
 
-    3.1 Categorical
+    -   3.1 Categorical
 
-    3.1.1 Contingency Tables
+        -   3.1.1 Contingency Tables
 
-    3.2 Numerical
+    -   3.2 Numerical
 
 4.  Outliers Detection
 
-    4.1 Uni-variant
+    -   4.1 Uni-variant
 
-    4.2 Multi-variant
+    -   4.2 Multi-variant
 
 5.  Derivation of New Variables
 
-6.  Exploratory Data Analysis
+6.  Rank variables
 
-7.  Unbalanced Dataset
-
-8.  Normalitzation
-
-9.  Rank new variables
-
-10. Save the new datasets
+7.  Save the new datasets
 
 # 1. Introduction
 
@@ -316,27 +313,6 @@ nonFactorDf <- df[!sapply(df, is.factor)]
 
 ```
 
-### 3.2.1 Rank importance of variables
-
-```{r, echo=False}
-
-tmpDf<-data.frame(nonFactorDf,factorDf['Attrition'])
-
-control <- trainControl(method="repeatedcv", number=10, repeats=3)
-
-model <- train(Attrition~., data=tmpDf, method="lvq", preProcess="scale", trControl=control)
-
-importance <- varImp(model, scale=FALSE)
-
-print(importance)
-
-plot(importance)
-
-
-#https://machinelearningmastery.com/feature-selection-with-the-caret-r-package/
-
-```
-
 # 4. Outliers Detection
 
 ## 4.1 Uni-Variant
@@ -471,7 +447,7 @@ ggplot(dfMahalanobisOutliers, aes(MonthlyIncome, TotalWorkingYears, color=JobRol
 # Porcentaje de salario que le han agumentado cada año.
 df$SalaryHikePerYear <- df$YearsAtCompany
 
-df$SalaryHikePerYear[df$SalaryHikePerYear == 0] <- 0.5 
+df$SalaryHikePerYear[df$SalaryHikePerYear == 0] <- 1
 
 df$SalaryHikePerYear <- df$PercentSalaryHike / df$SalaryHikePerYear
 
@@ -479,7 +455,7 @@ df$SalaryHikePerYear <- df$PercentSalaryHike / df$SalaryHikePerYear
 #Años de media en saltar de empresa a empresa
 
 df$TotalWorkingYears_aux <- df$TotalWorkingYears
-df$TotalWorkingYears_aux[df$TotalWorkingYears_aux == 0] <- 0.5 
+df$TotalWorkingYears_aux[df$TotalWorkingYears_aux == 0] <- 1 
 
 df$AverageYearsCompany <- df$TotalWorkingYears_aux / df$NumCompaniesWorked
 
@@ -502,165 +478,7 @@ ggplot(dfMahalanobisOutliers, aes(MonthlyIncome, TotalWorkingYears, color=JobRol
   geom_point()
 ```
 
-# 6. Exploratory Data Analysis
-
-```{r, echo=False}
-
-# Correlation Matrix of numerical variables
-
-corrplot(cor(nonFactorDf), method="number")
-corrplot(cor(nonFactorDf), method="color")
-
-
-corr <- round(cor(nonFactorDf), 1)
-
-pairs(df[, c("MonthlyIncome", "YearsSinceLastPromotion",
-             "TotalWorkingYears", "YearsAtCompany")])
-
-
-# Comparation with attrition
-
-hist_PercentSalaryHike <-ggplot(df, aes(x=PercentSalaryHike, fill=Attrition, color=Attrition)) +
-  geom_histogram(position="identity", alpha=0.5, binwidth = 1)
-
-hist_TotalWorkingYears <-ggplot(df, aes(x=TotalWorkingYears, fill=Attrition, color=Attrition)) +
-  geom_histogram(position="identity", alpha=0.5, binwidth = 1)
-
-hist_TrainingTimesLastYear <-ggplot(df, aes(x=TrainingTimesLastYear, fill=Attrition, color=Attrition)) +
-  geom_histogram(position="identity", alpha=0.5, binwidth = 1)
-
-hist_YearsAtCompany <-ggplot(df, aes(x=YearsAtCompany, fill=Attrition, color=Attrition)) +
-  geom_histogram(position="identity", alpha=0.5, binwidth = 1)
-
-hist_YearsInCurrentRole <-ggplot(df, aes(x=YearsInCurrentRole, fill=Attrition, color=Attrition)) +
-  geom_histogram(position="identity", alpha=0.5, binwidth = 1)
-
-hist_YearsSinceLastPromotion <- ggplot(df, aes(x=YearsSinceLastPromotion, fill=Attrition, color=Attrition)) +
-  geom_histogram(position="identity", alpha=0.5, binwidth = 1)
-
-hist_YearsWithCurrManager <- ggplot(df, aes(x=YearsWithCurrManager, fill=Attrition, color=Attrition)) +
-  geom_histogram(position="identity", alpha=0.5, binwidth = 1)
-
-hist_MonthlyIncome <- ggplot(df, aes(x=MonthlyIncome, fill=Attrition, color=Attrition)) +
-  geom_histogram(position="identity", alpha=0.5, binwidth = 350)
-
-
-figure <- ggarrange(hist_PercentSalaryHike, hist_TotalWorkingYears, hist_TrainingTimesLastYear,
-                    hist_YearsAtCompany, hist_YearsInCurrentRole, hist_YearsSinceLastPromotion, 
-                    hist_YearsWithCurrManager, hist_MonthlyIncome,
-                    ncol = 2, nrow = 4)
-figure
-
-
-
-# Scatterplot
-c("PercentSalaryHike", "TotalWorkingYears", "TrainingTimesLastYear", "YearsAtCompany", 
-  "YearsInCurrentRole","YearsSinceLastPromotion", "YearsWithCurrManager", "StandardHours", 
-  "MonthlyIncome")
-
-ggplot(df, aes(x=MonthlyIncome, y=YearsAtCompany, color=Attrition)) + 
-  geom_point() +
-  geom_smooth()
-
-
-ggplot(df, aes(x=YearsSinceLastPromotion, y=YearsAtCompany, color=Attrition)) + 
-  geom_point() +
-  geom_smooth()
-
-ggplot(df, aes(x=YearsInCurrentRole, y=MonthlyIncome, color=Attrition)) + 
-  geom_point()+
-  geom_smooth()
-
-
-
-# EDU POTSER REPETITS
-## PERCENTSALARYHIKE CORRELATED WITH PERFORMANCERATING!!
-
-ggplot(df, aes(x=Age, y=Attrition)) +
-  geom_boxplot()
-
-ggplot(df, aes(x=DailyRate, y=Attrition)) +
-  geom_boxplot()
-
-ggplot(df, aes(x=DistanceFromHome, y=Attrition)) +
-  geom_boxplot()
-
-ggplot(df, aes(x=MonthlyIncome, y=Attrition)) +
-  geom_boxplot()
-
-ggplot(df, aes(x=NumCompaniesWorked, y=Attrition)) +
-  geom_boxplot()
-
-ggplot(df, aes(x=PercentSalaryHike, y=Attrition)) +
-  geom_boxplot()
-
-ggplot(df, aes(x=TotalWorkingYears, y=Attrition)) +
-  geom_boxplot()
-
-ggplot(df, aes(x=YearsAtCompany, y=Attrition)) +
-  geom_boxplot()
-
-ggplot(df, aes(x=YearsInCurrentRole, y=Attrition)) +
-  geom_boxplot()
-
-ggplot(df, aes(x=YearsSinceLastPromotion, y=Attrition)) +
-  geom_boxplot()
-
-ggplot(df, aes(x=YearsWithCurrManager, y=Attrition)) +
-  geom_boxplot()
-
-
-# OTHERS
-
-ggplot(df, aes(x=MonthlyIncome, y=JobLevel, fill=Gender)) +
-  geom_boxplot()
-
-ggplot(df, aes(x=PercentSalaryHike, y=PerformanceRating, fill=Gender)) +
-  geom_boxplot()
-
-ggplot(df, aes(x=MonthlyIncome, y=EducationField, fill=Gender)) +
-  geom_boxplot()
-
-ggplot(df, aes(x=MonthlyIncome, y=EducationField, fill=MaritalStatus)) +
-  geom_boxplot()
-
-ggplot(df, aes(x=MonthlyIncome, y=Attrition, fill=Gender)) +
-  geom_boxplot()
-
-
-
-
-
-```
-
-# 7. Unbalanced Dataset
-
-```{r , echo=False}
-
-# Atrition
-# Unvalenced dataset. Hay que hacer un balanceo de datos
-slices <- c(as.data.frame(table(df$Attrition))[1,2],as.data.frame(table(df$Attrition))[2,2])
-lbls <- c(as.data.frame(table(df$Attrition))[1,1],as.data.frame(table(df$Attrition))[2,1])
-pie(slices, labels = lbls, main="Atrittion")
-
-
-```
-
-# 8. Normalization
-
-```{r , echo=False}
-
-myvars_2 <- c("Age","DailyRate", "HourlyRate", "MonthlyIncome", "MonthlyRate",
-            "NumCompaniesWorked","PercentSalaryHike", "TotalWorkingYears", "TrainingTimesLastYear", 
-            "YearsAtCompany", 
-            "YearsInCurrentRole","YearsSinceLastPromotion", "YearsWithCurrManager", 
-            "MonthlyIncome", "SalaryHikePerYear", "AverageYearsCompany", "AgeToJubilation","Attrition")
-
-options(contrasts=c("contr.treatment","contr.treatment"))
-
-```
-
-# 9. Rank new variables
+# 6. Rank variables
 
 ```{r, echo=False}
 
@@ -681,23 +499,26 @@ plot(importance)
 
 ```
 
-# 10. Save the new datasets
+# 7. Save the new datasets
 
 ```{r, echo=False}
 
 # Preprocesed Dataset
-write.table(df, file = "./Data/preprocessed_IBM_Employees.csv", sep = ",", na = "NA", dec = ".", row.names = FALSE, col.names = TRUE)
+save(df, file = "./Data/df_preprocessed_IBM_Employees.Rdata")
 
+#################################
+# PCA - MCA - MFA - ML Datasets #
+#################################
 
 # Dataset For PCA
 df_PCA<-subset(df, select = -c(Department,EducationField))
 df_PCA<-df_PCA[!sapply(df_PCA, is.factor)]
-write.table(df_PCA, file = "./Data/preprocessed_PCA_IBM_Employees.csv", sep = ",", na = "NA", dec = ".", row.names = FALSE, col.names = TRUE)
+save(df_PCA, file = "./Data/df_preprocessed_PCA_IBM_Employees.Rdata")
 
 # Dataset For MCA
 df_MCA<-subset(df, select = -c(Department,EducationField))
 df_MCA<-df_MCA[!sapply(df_MCA, is.factor)]
-write.table(df_MCA, file = "./Data/preprocessed_MCA_IBM_Employees.csv", sep = ",", na = "NA", dec = ".", row.names = FALSE, col.names = TRUE)
+save(df_MCA, file = "./Data/df_preprocessed_MCA_IBM_Employees.Rdata")
 
 # Dataset For MFA
 #write.table(dd, file = "./Data/preprocessed_MFA_IBM_Employees.csv", sep = ",", na = "NA", dec = ".", row.names = FALSE, col.names = TRUE)

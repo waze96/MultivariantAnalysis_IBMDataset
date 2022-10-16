@@ -5,6 +5,8 @@ date: "2022-10-08"
 output: html_document
 ---
 
+TODO: Explanation of this part
+
 ```{r, setup, include=FALSE, echo=FALSE}
 #knitr::opts_chunk$set(echo = TRUE)
 requiredPackages <- c("ggplot2","rapportools","plyr","cowplot", "ggpubr", "corrplot", "corrplot", "mlbench", "caret", "FactoMineR")
@@ -28,15 +30,15 @@ setwd(PROJECT_PATH)
 
     1.2 DataFrame Basic Information
 
-2.  Formatting issues
+2.  Univariate analysis
 
-3.  Feature selection
+    2.1 Categorical
 
-    3.1 Categorical
+    2.2 Numerical
 
-    3.1.1 Contingency Table
+3.  Bivariate analysis
 
-    3.2 Numerical
+    3.1 Contingency Table
 
 4.  Outliers Detection
 
@@ -54,98 +56,12 @@ setwd(PROJECT_PATH)
 
 # 1. Introduction
 
-## 1.1 Load Data
+## 1.1 Load Pre-processed data and useful functions
 
 ```{r, echo=TRUE}
 
-df <- read.csv("./Data/preprocessed_IBM_Employees.csv")
+load("./Data/df_preprocessed_IBM_Employees.Rdata") 
 
-```
-
-## 1.2 Dataframe basic information
-
-Show a summary of the current dataframe.
-
-```{r, echo=TRUE}
-
-str(df)
-summary(df)
-length(levels(as.factor(df$EmployeeNumber))) # that show than it's an id
-
-# We delete the feature Over18 because 100% of the employee have more than 18yo and EmployeeCount / StandardHours for the same reason
-# we delete EmployeeNumber because it's just an id
-try(df <- subset(df, select = -c(Over18, EmployeeNumber, EmployeeCount, StandardHours))) # for avoid error if we rerun the cell
-
-```
-
-# 2. Formatting issues
-
--   Check that Categorical variables are correctly processed by R, so all interpreted as factors.
--   Set short-meaningful level names for the categorical variables.
--   Reduce number of levels if has sense.
-
-```{r, echo=False}
-
-df$Attrition=as.factor(df$Attrition)
-
-df$BusinessTravel=as.factor(df$BusinessTravel)
-
-df$Department=as.factor(df$Department)
-
-df$Education=as.factor(df$Education)
-levels(df$Education) <- c('Below College', 'College', 'Bachelor', 'Master', 'Doctor')
-
-df$EducationField=as.factor(df$EducationField)
-
-df$EnvironmentSatisfaction=as.factor(df$EnvironmentSatisfaction)
-levels(df$EnvironmentSatisfaction) <- c('Low', 'Medium', 'High', 'Very High')
-
-df$Gender=as.factor(df$Gender)
-
-df$JobInvolvement=as.factor(df$JobInvolvement)
-levels(df$JobInvolvement) <- c('Low', 'Medium', 'High', 'Very High')
-
-df$JobLevel=as.factor(df$JobLevel)
-levels(df$JobLevel) <- c('Intern', 'Junior', 'Senior', 'Manager', 'Director')
-
-# Reduce number of levels from 9 to 7
-df$JobRole=as.factor(df$JobRole)
-levels(df$JobRole) <- c("Representatives", "H.R.", "Lab. Tech.", "Manager", "Directors", "Directors", "Research Sci.", "Sales Executive", "Representatives")
-
-df$JobSatisfaction=as.factor(df$JobSatisfaction)
-levels(df$JobSatisfaction) <- c('Low', 'Medium', 'High', 'Very High')
-
-df$MaritalStatus=as.factor(df$MaritalStatus)
-
-df$OverTime=as.factor(df$OverTime)
-
-df$PerformanceRating=factor(df$PerformanceRating, levels = c(1, 2, 3, 4))
-levels(df$PerformanceRating) <- c('Low', 'Good', 'Excellent', 'Outstanding')
-
-df$RelationshipSatisfaction=as.factor(df$RelationshipSatisfaction)
-levels(df$RelationshipSatisfaction) <- c('Low', 'Medium', 'High', 'Very High')
-
-df$StockOptionLevel=as.factor(df$StockOptionLevel)
-levels(df$StockOptionLevel) <- c('No', 'Few', 'Medium', 'High')
-
-df$WorkLifeBalance=as.factor(df$WorkLifeBalance)
-levels(df$WorkLifeBalance) <- c('Bad', 'Good', 'Better', 'Best')
-
-```
-
-# 3. Feature selection
-
--   Evaluation of the relevant variables
--   Prioritization and ranking under different criteria
--   Feature weighting
--   Elimination of irrelevant variables
--   Feature selection
-
-## 3.1 Categorical variables
-
-```{r, echo=False}
-
-factorDf <- df[sapply(df, is.factor)]
 
 plotFreq <- function(df, feature, xlabel) {
   plot<-ggplot(df, aes(x=feature)) +
@@ -162,17 +78,33 @@ plotPie <- function(feature, varName) {
   per <- c(round(nb/sum(nb)*100,2))$freq;
   names <- levels(feature);
   labs <- paste(names, per, "%");
+  #jpeg(paste(plot_path, data_names[i], ".jpeg", sep = ""), height=800, width=1000)
   plot<-pie(summary(feature), labels = labs, main=paste("Pie Chart of ",varName));
   return(plot)
 }
 
-getProbabilityTable <- function(feature) {
-  table <- table(feature)
-  table_prob <- table / sum(table)                                  # Create proportion table
-  table_perc <- paste0(round(table_prob * 100, 2), "%")             # Format percentages
-  names(table_perc) <- names(table_prob * 100)
-  return(table_perc)                                                # Print updated percentage table
-}
+```
+
+## 1.2 Dataframe basic information
+
+Show a summary of the current dataframe and split by numeric and categorical variables.
+
+```{r, echo=TRUE}
+
+str(df)
+summary(df)
+
+
+numericalDf <- df[!sapply(df, is.factor)]
+categoricalDf <- df[sapply(df, is.factor)]
+
+```
+
+# 2. Univariate analysis
+
+## 2.1 Categorical variables
+
+```{r, echo=False}
 
 # we make a pie-chart for categorical variable with no order and binary
 plotPie(df$Attrition, 'Attrition')
@@ -182,9 +114,9 @@ plotPie(df$Gender, 'Gender')
 plotPie(df$JobRole, 'JobRole')
 plotPie(df$MaritalStatus, 'MaritalStatus')
 plotPie(df$OverTime, 'OverTime')
-plotFreq(df, df$PerformanceRating, 'PerformanceRating')
 
 # we make an histogram for categorical variable with order
+plotFreq(df, df$PerformanceRating, 'PerformanceRating')
 plotFreq(df, df$BusinessTravel, 'BusinessTravel')
 plotFreq(df, df$Education, 'Education')
 plotFreq(df, df$EnvironmentSatisfaction, 'EnvironmentSatisfaction')
@@ -194,56 +126,13 @@ plotFreq(df, df$JobSatisfaction, 'JobSatisfaction')
 plotFreq(df, df$RelationshipSatisfaction, 'RelationshipSatisfaction')
 plotFreq(df, df$StockOptionLevel, 'StockOptionLevel')
 plotFreq(df, df$WorkLifeBalance, 'WorkLifeBalance')
-```
-- Nothing special to say but it can be useful later.
 
-### 3.1.1 Contingency table
-
-```{r, echo=False, warning=FALSE}
-
-# for all combination between two categorical variable, we make a chisq.test (independance test for categorical var) and we keep variable than are dependant (p-value of the chisq test < 0.05 => we are sure than there are dependant with > 95%)
-
-i=1
-for (var1 in factorDf[-length(factorDf)]) {
-  factorDf3 <- factorDf[-c(1:i)]
-  j=1
-  for(var2 in factorDf3) {
-    chisq_test <- chisq.test(var1, var2)
-    if(chisq_test$p.value < 0.05) {
-      print(paste0(attributes(factorDf[i])$names, " | ", attributes(factorDf3[j])$names, " | p-value ", chisq_test$p.value))
-      print(table(var1,var2))
-    }
-    j=j+1
-  }
-  i=i+1
-}
-
-ggplot(data = factorDf) +
-  geom_bar(aes(x = factor(OverTime), fill = factor(JobSatisfaction)), position = "fill")
-
-ggplot(data = factorDf) +
-  geom_bar(aes(x = factor(JobRole), fill = factor(Gender)), position = "fill")
-
-ggplot(data = factorDf) +
-  geom_bar(aes(x = factor(JobLevel), fill = factor(StockOptionLevel)), position = "fill")
-
-ggplot(data = factorDf) +
-  geom_bar(aes(x = factor(MaritalStatus), fill = factor(StockOptionLevel)), position = "fill")
 ```
 
-- We can see that the more an employee make over time the more he likes his job.
-- Women have a little bit more positions of responsibility (in proportion to their number)
-- Single employees have no StockOptionLevel. 
--Divorced employees have more StockOptionLevel than others employees
-- Despite a p-value < 0.05, looking at the contingency tables we can say that they are not 100% dependent and therefore we cannot eliminate them.
--   We may group the variable Department and JobRole for create a new variable (categorical variable with the following levels : Representatives R&D, Representatives Sales, Healthcare Representative, Laboratory Technician, Manager Human Resources, Manager R&D, Manager Sales, Directors R&D, Research Scientist, Sales Executive)but we haven't do that because we prefer keep the information about the both variable rather than simplify the dataset by reduce his number of variable.
-- Sellers are more likely to want to quit the company
-- The following variables will be interesting to predict our response variable (Attrition) : Department, EducationField, EnvironmentSatisfaction, JobInvolvement, JobLevel, JobRole, JobSatisfaction, MaritalStatus, OverTime, StockOptionLevel, WorkLifeBalance.
-
-
-## 3.2 Numerical Variables
+## 2.2 Numerical Variables
 
 ```{r, echo=False}
+
 nonFactorDf <- df[!sapply(df, is.factor)]
 
 i = 1
@@ -252,21 +141,17 @@ for (variable in nonFactorDf) {
   hist(variable, main = data_names[i])
   i = i+1
 }
+
 ```
 
--   The variable age seems to follow a normal distribution centered in 36.92 years old.
--   The daily rate is approximately equi-distributed between the workers it swings between 102\$ and 1499\$per day with frequencies between 80 and 125.
--   From the plot of Distance from home we can see that the majority of the workers leave near and the more we are far from the work the more frequency of workers decrease with a maximum of distance = 29km.
--   The hourly rate plot is not that different from the daily rate plot it swings from 30\$ to 100\$ per hour with frequencies between 80 and 120.
--   The monthly income which the net salary swings changes from 1009\$ to 19999\$ with a high frequency around 2500 and 5000\$.
--   The monthly rate plot seems to be like daily and hourly rate, it goes form 2094\$ to 26999\$.
--   The variable num companies that workers worked in is very frequent around 1 and 2 so we can say that the majority of the workers are regular in the company.
--   The percentage of salary hike of the workers differs from 11% to 25% with a majority between 11% and 14%.
--   The total working years of the workers goes from 0 to 40 in addition the majority have worked between 5 and 20 years so the majority has a certain experience in the world of work.
--   Training time last year , may be we can delete ... to see !
--   The plot of the variable years at company decrease from 40 to 0 with a big frequency around 0 and 10 years.
--   The variable years at current role seems to be like the variable years at company.
--   The variable years since last promotion is very frequent around 1 and 2 then it decreases very quickly.
+```{r, echo=False}
+
+quantile(df$SalaryHikePerYear, prob=c(.1,.2,.3,.4,.5,.6,.7,.8,.9))
+quantile(df$AverageYearsCompany, prob=c(.1,.2,.3,.4,.5,.6,.7,.8,.9))
+
+```
+
+# 3. Bivariate analysis
 
 ```{r, echo=False}
 
@@ -304,7 +189,6 @@ print(highlyCorrelated)
 # Probably doing and stadistic test would be a good idea to know if we have to
 # delete them or no.
 ```
-
 
 ```{r}
 i=1
@@ -369,10 +253,7 @@ ggplot(df, aes(x=YearsWithCurrManager, color=Attrition)) +
      geom_density()
 ```
 
--So we can say that if an employee want to leave the company, he has probably a higher value than the mean for the following variable : DistanceFromHome.
-and a smaller value for : Age, DailyRate, TotalWorkingYears, TrainingTimesLastYear, YearsAtCompany, YearsInCurrentRole, YearsSinceLastPromotion, YearsWithCurrManager.
-- We can expect that a Young Employee with little experience in the company has more risk of leaving the company.
-
+-So we can say that if an employee want to leave the company, he has probably a higher value than the mean for the following variable : DistanceFromHome. and a smaller value for : Age, DailyRate, TotalWorkingYears, TrainingTimesLastYear, YearsAtCompany, YearsInCurrentRole, YearsSinceLastPromotion, YearsWithCurrManager. - We can expect that a Young Employee with little experience in the company has more risk of leaving the company.
 
 ### 3.2.2 Rank importance of variables
 
@@ -395,127 +276,47 @@ plot(importance)
 
 ```
 
-# 4. Outliers Detection
+### 3.1.1 Contingency table
 
-## 4.1 Uni-Variant
+```{r, echo=False, warning=FALSE}
 
-```{r, echo=False}
+# for all combination between two categorical variable, we make a chisq.test (independance test for categorical var) and we keep variable than are dependant (p-value of the chisq test < 0.05 => we are sure than there are dependant with > 95%)
 
-#Boxplots
-box_plot <- function(data, column, name)
-{
-  return(ggplot(data, aes(column)) + 
-           geom_boxplot()+
-           labs(x = name))
+i=1
+for (var1 in factorDf[-length(factorDf)]) {
+  factorDf3 <- factorDf[-c(1:i)]
+  j=1
+  for(var2 in factorDf3) {
+    chisq_test <- chisq.test(var1, var2)
+    if(chisq_test$p.value < 0.05) {
+      print(paste0(attributes(factorDf[i])$names, " | ", attributes(factorDf3[j])$names, " | p-value ", chisq_test$p.value))
+      print(table(var1,var2))
+    }
+    j=j+1
+  }
+  i=i+1
 }
 
-bp_PercentSalaryHike <- box_plot(df, df$PercentSalaryHike, "PercentSalaryHike")
-bp_TotalWorkingYears <- box_plot(df, df$TotalWorkingYears, "TotalWorkingYears")
-bp_TrainingTimesLastYear <- box_plot(df, df$TrainingTimesLastYear, "TrainingTimesLastYear")
-bp_YearsAtCompany <- box_plot(df, df$YearsAtCompany, "YearsAtCompany")
-bp_YearsInCurrentRole <- box_plot(df, df$YearsInCurrentRole, "YearsInCurrentRole")
-bp_YearsSinceLastPromotion <- box_plot(df, df$YearsSinceLastPromotion, "YearsSinceLastPromotion")
-bp_YearsWithCurrManager <- box_plot(df, df$YearsWithCurrManager, "YearsWithCurrManager")
-bp_MonthlyIncome <- box_plot(df, df$MonthlyIncome, "MonthlyIncome")
+ggplot(data = factorDf) +
+  geom_bar(aes(x = factor(OverTime), fill = factor(JobSatisfaction)), position = "fill")
 
-figure_bp <- ggarrange(bp_PercentSalaryHike, bp_TotalWorkingYears, bp_TrainingTimesLastYear,
-                    bp_YearsAtCompany, bp_YearsInCurrentRole,
-                    bp_YearsSinceLastPromotion, bp_YearsWithCurrManager, 
-                    bp_MonthlyIncome,
-                    ncol = 2, nrow = 4)
-figure_bp
+ggplot(data = factorDf) +
+  geom_bar(aes(x = factor(JobRole), fill = factor(Gender)), position = "fill")
 
+ggplot(data = factorDf) +
+  geom_bar(aes(x = factor(JobLevel), fill = factor(StockOptionLevel)), position = "fill")
 
-
-#Histograms
-hist <- function(data, column, bw, name)
-{
-  return(ggplot(data, aes(column)) + 
-           geom_histogram(aes(y = ..density..), colour="black", fill="white", binwidth = bw)+
-           geom_density(lwd = 1, colour = 4, fill = 4, alpha = 0.2)+
-           labs(x = name))
-}
-
-hist_PercentSalaryHike <- hist(df, df$PercentSalaryHike, 1, "PercentSalaryHike")
-hist_TotalWorkingYears <- hist(df, df$TotalWorkingYears, 1, "TotalWorkingYears")
-hist_TrainingTimesLastYear <- hist(df, df$TrainingTimesLastYear, 1, "TrainingTimesLastYear")
-hist_YearsAtCompany <- hist(df, df$YearsAtCompany, 1, "YearsAtCompany")
-hist_YearsInCurrentRole <- hist(df, df$YearsInCurrentRole, 1, "YearsInCurrentRole")
-hist_YearsSinceLastPromotion <- hist(df, df$YearsSinceLastPromotion, 1, "YearsSinceLastPromotion")
-hist_YearsWithCurrManager <- hist(df, df$YearsWithCurrManager, 1, "YearsWithCurrManager")
-hist_Age <- hist(df, df$Age, 1, "Age")
-hist_DailyRate <- hist(df, df$DailyRate, 150, "DailyRate")
-hist_HourlyRate <- hist(df, df$HourlyRate, 50, "HourlyRate")
-hist_MonthlyIncome <- hist(df, df$MonthlyIncome, 700, "MonthlyIncome")
-hist_MonthlyRate <- hist(df, df$MonthlyRate, 650, "MonthlyRate")
-hist_NumCompaniesWorked <- hist(df, df$NumCompaniesWorked, 1, "NumCompaniesWorked")
-
-#juntar plots en ggplot2
-figure_hist_1 <- ggarrange(hist_PercentSalaryHike, hist_TotalWorkingYears, hist_TrainingTimesLastYear,
-                      hist_YearsAtCompany, hist_YearsInCurrentRole, hist_YearsSinceLastPromotion, 
-                      ncol = 3, nrow = 2)
-figure_hist_1
-
-figure_hist_2 <- ggarrange(hist_YearsWithCurrManager, hist_MonthlyIncome,
-                      hist_Age, hist_DailyRate, hist_MonthlyRate, 
-                      hist_NumCompaniesWorked,
-                      ncol = 3, nrow = 2)
-figure_hist_2
-
+ggplot(data = factorDf) +
+  geom_bar(aes(x = factor(MaritalStatus), fill = factor(StockOptionLevel)), position = "fill")
 ```
 
-## 4.2 Multi-variant
-
-```{r, echo=False}
-
-mdi = mahalanobis(nonFactorDf,center=apply(nonFactorDf,2,mean),cov=var(nonFactorDf))
-plot(density(mdi))
-cutoff <- qchisq(p = 0.99 , ncol(nonFactorDf))
-## Display observation whose distance greater than cutoff value
-nonFactorDf[mdi>cutoff,]
-#nonFactorDf<-data.frame(nonFactorDf[mdi>cutoff,],df[mdi>cutoff,1])
-
-```
-
-# 5. Derivation of new variables
-
-```{r, echo=False}
-
-
-# Porcentaje de salario que le han agumentado cada año.
-df$SalaryHikePerYear <- df$YearsAtCompany
-
-df$SalaryHikePerYear[df$SalaryHikePerYear == 0] <- 0.5 
-
-df$SalaryHikePerYear <- df$PercentSalaryHike / df$SalaryHikePerYear
-
-
-#Años de media en saltar de empresa a empresa
-
-df$TotalWorkingYears_aux <- df$TotalWorkingYears
-df$TotalWorkingYears_aux[df$TotalWorkingYears_aux == 0] <- 0.5 
-
-df$NumCompaniesWorked_aux <- df$NumCompaniesWorked + 1
-
-df$AverageYearsCompany <- df$TotalWorkingYears_aux / df$NumCompaniesWorked_aux
-
-df$NumCompaniesWorked_aux <- NULL
-df$TotalWorkingYears_aux <- NULL
-
-
-#Años para jubilarse
-JubliationAge <- 66
-
-df$AgeToJubilation <- JubliationAge - df$Age
-
-
-# The employee has different managers in the company
-df$DifferentManagers<-df$YearsAtCompany-df$YearsWithCurrManager
-df$DifferentManagers[df$DifferentManagers>0]<-1
-df$DifferentManagers<-as.factor(df$DifferentManagers)
-levels(df$DifferentManagers)<-c("No","Yes")
-
-```
+-   We can see that the more an employee make over time the more he likes his job.
+-   Women have a little bit more positions of responsibility (in proportion to their number)
+-   Single employees have no StockOptionLevel. -Divorced employees have more StockOptionLevel than others employees
+-   Despite a p-value \< 0.05, looking at the contingency tables we can say that they are not 100% dependent and therefore we cannot eliminate them.
+-   We may group the variable Department and JobRole for create a new variable (categorical variable with the following levels : Representatives R&D, Representatives Sales, Healthcare Representative, Laboratory Technician, Manager Human Resources, Manager R&D, Manager Sales, Directors R&D, Research Scientist, Sales Executive)but we haven't do that because we prefer keep the information about the both variable rather than simplify the dataset by reduce his number of variable.
+-   Sellers are more likely to want to quit the company
+-   The following variables will be interesting to predict our response variable (Attrition) : Department, EducationField, EnvironmentSatisfaction, JobInvolvement, JobLevel, JobRole, JobSatisfaction, MaritalStatus, OverTime, StockOptionLevel, WorkLifeBalance.
 
 # 6. Exploratory Data Analysis
 
@@ -641,67 +442,5 @@ ggplot(df, aes(x=MonthlyIncome, y=EducationField, fill=MaritalStatus)) +
 
 ggplot(df, aes(x=MonthlyIncome, y=Attrition, fill=Gender)) +
   geom_boxplot()
-
-```
-
-# 7. Unbalanced Dataset
-
-```{r , echo=False}
-
-# Atrition
-# Unvalenced dataset. Hay que hacer un balanceo de datos
-slices <- c(as.data.frame(table(df$Attrition))[1,2], as.data.frame(table(df$Attrition))[2,2])
-lbls <- c(as.data.frame(table(df$Attrition))[1,1], as.data.frame(table(df$Attrition))[2,1])
-pie(slices, labels = lbls, main="Attrition")
-```
-
-# 8. Normalization
-
-```{r , echo=False}
-
-myvars_2 <- c("Age","DailyRate", "HourlyRate", "MonthlyIncome", "MonthlyRate",
-            "NumCompaniesWorked","PercentSalaryHike", "TotalWorkingYears", "TrainingTimesLastYear", 
-            "YearsAtCompany", 
-            "YearsInCurrentRole","YearsSinceLastPromotion", "YearsWithCurrManager", 
-            "MonthlyIncome", "SalaryHikePerYear", "AverageYearsCompany", "AgeToJubilation","Attrition")
-
-options(contrasts=c("contr.treatment","contr.treatment"))
-
-res.con<-condes(df,14)
-res.con<-condes(df,4, proba= 0.25)
-str(res.con)
-names(res.con)
-res.con$quanti
-res.con$quali
-res.con$category
-
-# Just to try: Let type be the response for example purposes
-names(df)
-res.cat<-catdes(df,num.var=6)
-names(res.cat)
-res.cat$test.chi2
-res.cat$category
-res.cat$quanti.var
-res.cat$quanti
-```
-
-# 9. Rank new variables
-
-```{r, echo=False}
-
-factorDf <- df[sapply(df, is.factor)]
-nonFactorDf <- df[!sapply(df, is.factor)]
-
-tmpDf<-data.frame(nonFactorDf,factorDf['Attrition'])
-
-control <- trainControl(method="repeatedcv", number=10, repeats=3)
-
-model <- train(Attrition~., data=tmpDf, method="lvq", preProcess="scale", trControl=control)
-
-importance <- varImp(model, scale=FALSE)
-
-print(importance)
-
-plot(importance)
 
 ```
