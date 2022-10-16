@@ -16,18 +16,21 @@ packages.check <- lapply(requiredPackages, FUN = function(x) {
 #mixtools, MVN, robustbase, hola
 ```
 
-# Content Table
+1.  Import data
+```{R}
+#load("~/Documents/UPC/1Q/MultivariateAnalysis_MVVA/Labs/MultivariantAnalysis_IBMDataset/dataframe_PCA_MCA_MFA.Rdata")
+#numDf <- df_PCA_MCA_MFA[!sapply(df_PCA_MCA_MFA, is.factor)]
 
-1.  Scree plot
 
+numDf <- read.csv("C:/Users/jordi/Documents/GitHub/MultivariantAnalysis_IBMDataset/Data/Preprocessed_PCA_IBM_Employees.csv")
+
+
+
+```
 
 # 1. Scree plot
 
 ```{r, echo=TRUE}
-
-load("~/Documents/UPC/1Q/MultivariateAnalysis_MVVA/Labs/MultivariantAnalysis_IBMDataset/dataframe_PCA_MCA_MFA.Rdata")
-
-numDf <- df_PCA_MCA_MFA[!sapply(df_PCA_MCA_MFA, is.factor)]
 
 pca <- prcomp(numDf, scale = TRUE)
 pca$rotation
@@ -44,6 +47,73 @@ prop_varianza_acum
 # Les 7 primeres 78.4 % de la varianxa
 
 ```
+
+
+
+
+```{r, echo=TRUE}
+
+pca_values <- PCA(numDf, scale.unit = TRUE, graph = FALSE)
+
+# Extract the eigenvalues/variances of principal components
+get_eigenvalue(pca_values)
+
+# Visualize the eigenvalues
+fviz_eig(pca_values, addlabels=TRUE, hjust = -0.3) +
+  ylim(0, 40)
+
+#  Extract the results for individuals and variables, respectively.
+get_pca_ind(pca_values)
+get_pca_var(pca_values)
+
+#Visualize the results individuals and variables, respectively.
+fviz_pca_ind(pca_values)
+fviz_pca_var(pca_values)
+
+
+#Make a biplot of individuals and variables.
+fviz_pca_biplot(pca_values)
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 ## 1.2 Dataframe basic information
 
