@@ -1,5 +1,5 @@
 ---
-title: "Preprocessing"
+title: "Descriptive Analysis"
 author: ""
 date: "2022-10-08"
 output: html_document
@@ -7,7 +7,7 @@ output: html_document
 
 ```{r, setup, include=FALSE, echo=FALSE}
 #knitr::opts_chunk$set(echo = TRUE)
-requiredPackages <- c("ggplot2","rapportools","plyr","cowplot", "ggpubr", "corrplot", "corrplot", "mlbench", "caret", "FactoMineR", "ggcorrplot")
+requiredPackages <- c("ggplot2","rapportools","plyr","cowplot", "ggpubr", "corrplot", "corrplot", "mlbench", "caret", "FactoMineR")
 packages.check <- lapply(requiredPackages, FUN = function(x) {
   if(!require(x, character.only = TRUE)) {
     install.packages(x, dependencies = TRUE)
@@ -34,7 +34,7 @@ setwd(PROJECT_PATH)
 
     3.1 Categorical
 
-    3.1.1 Contingency Tables
+    3.1.1 Contingency Table
 
     3.2 Numerical
 
@@ -50,39 +50,15 @@ setwd(PROJECT_PATH)
 
 7.  Unbalanced Dataset
 
-8.  Normalitzation
-
-9.  Rank new variables
-
-10. Save the new datasets
+8.  Normalization
 
 # 1. Introduction
 
-## 1.1 Load Data and useful functions
+## 1.1 Load Data
 
 ```{r, echo=TRUE}
-#df <- read.csv("C:/Users/jordi/Desktop/mva/data_mva.csv")
-df <- read.csv("./Data/IBM_Employees.csv")
 
-plotFreq <- function(df, feature, xlabel) {
-  plot<-ggplot(df, aes(x=feature)) +
-        geom_bar(aes(y =(..count..)/sum(..count..))) +
-        geom_text(aes( label = scales::percent((..count..)/sum(..count..)),
-                   y= ((..count..)/sum(..count..)) ), stat= "count", vjust = 1.25, color="#ffffff", size=3) +
-        labs(x=xlabel, y='Percent')+
-        scale_y_continuous(labels = scales::percent)
-  return(plot)
-}
-
-plotPie <- function(feature, varName) {
-  nb <- count(feature)[2];
-  per <- c(round(nb/sum(nb)*100,2))$freq;
-  names <- levels(feature);
-  labs <- paste(names, per, "%");
-  #jpeg(paste(plot_path, data_names[i], ".jpeg", sep = ""), height=800, width=1000)
-  plot<-pie(summary(feature), labels = labs, main=paste("Pie Chart of ",varName));
-  return(plot)
-}
+df <- read.csv("./Data/preprocessed_IBM_Employees.csv")
 
 ```
 
@@ -91,7 +67,14 @@ plotPie <- function(feature, varName) {
 Show a summary of the current dataframe.
 
 ```{r, echo=TRUE}
+
 str(df)
+summary(df)
+length(levels(as.factor(df$EmployeeNumber))) # that show than it's an id
+
+# We delete the feature Over18 because 100% of the employee have more than 18yo and EmployeeCount / StandardHours for the same reason
+# we delete EmployeeNumber because it's just an id
+try(df <- subset(df, select = -c(Over18, EmployeeNumber, EmployeeCount, StandardHours))) # for avoid error if we rerun the cell
 
 ```
 
@@ -103,19 +86,11 @@ str(df)
 
 ```{r, echo=False}
 
-df$NumCompaniesWorked=df$NumCompaniesWorked+1
-
 df$Attrition=as.factor(df$Attrition)
 
 df$BusinessTravel=as.factor(df$BusinessTravel)
 
 df$Department=as.factor(df$Department)
-
-# Reduce number of levels from 29 to 7
-df$DistanceFromHome=as.factor(df$DistanceFromHome)
-plotFreq(df, df$DistanceFromHome, 'Distance From Home')
-levels(df$DistanceFromHome) <- c("1", "1", "2", "2", "2", "2", "3", "3", "3", "3", "4", "4", "4", "4", "4", "5", "5", "5", "5", "5", "5", "5", "6", "6", "6", "6", "6", "7", "7")
-plotFreq(df, df$DistanceFromHome, 'Distance From Home')
 
 df$Education=as.factor(df$Education)
 levels(df$Education) <- c('Below College', 'College', 'Bachelor', 'Master', 'Doctor')
@@ -135,16 +110,12 @@ levels(df$JobLevel) <- c('Intern', 'Junior', 'Senior', 'Manager', 'Director')
 
 # Reduce number of levels from 9 to 7
 df$JobRole=as.factor(df$JobRole)
-plotFreq(df, df$JobRole, 'Job Role')
 levels(df$JobRole) <- c("Representatives", "H.R.", "Lab. Tech.", "Manager", "Directors", "Directors", "Research Sci.", "Sales Executive", "Representatives")
-plotFreq(df, df$JobRole, 'Job Role')
 
 df$JobSatisfaction=as.factor(df$JobSatisfaction)
 levels(df$JobSatisfaction) <- c('Low', 'Medium', 'High', 'Very High')
 
 df$MaritalStatus=as.factor(df$MaritalStatus)
-
-df$Over18=as.factor(df$Over18)
 
 df$OverTime=as.factor(df$OverTime)
 
@@ -164,7 +135,11 @@ levels(df$WorkLifeBalance) <- c('Bad', 'Good', 'Better', 'Best')
 
 # 3. Feature selection
 
-Evaluation of the relevant variables - Priorization and ranking under different criteria - Feature weighting - Elimination of irrelevant variables - Feature selection
+-   Evaluation of the relevant variables
+-   Prioritization and ranking under different criteria
+-   Feature weighting
+-   Elimination of irrelevant variables
+-   Feature selection
 
 ## 3.1 Categorical variables
 
@@ -172,109 +147,130 @@ Evaluation of the relevant variables - Priorization and ranking under different 
 
 factorDf <- df[sapply(df, is.factor)]
 
-# Binary Categorical Variables
+plotFreq <- function(df, feature, xlabel) {
+  plot<-ggplot(df, aes(x=feature)) +
+        geom_bar(aes(y =(..count..)/sum(..count..))) +
+        geom_text(aes( label = scales::percent((..count..)/sum(..count..)),
+                   y= ((..count..)/sum(..count..)) ), stat= "count", vjust = 1.25, color="#ffffff", size=3) +
+        labs(x=xlabel, y='Percent')+
+        scale_y_continuous(labels = scales::percent)
+  return(plot)
+}
+
+plotPie <- function(feature, varName) {
+  nb <- count(feature)[2];
+  per <- c(round(nb/sum(nb)*100,2))$freq;
+  names <- levels(feature);
+  labs <- paste(names, per, "%");
+  plot<-pie(summary(feature), labels = labs, main=paste("Pie Chart of ",varName));
+  return(plot)
+}
+
+getProbabilityTable <- function(feature) {
+  table <- table(feature)
+  table_prob <- table / sum(table)                                  # Create proportion table
+  table_perc <- paste0(round(table_prob * 100, 2), "%")             # Format percentages
+  names(table_perc) <- names(table_prob * 100)
+  return(table_perc)                                                # Print updated percentage table
+}
+
+# we make a pie-chart for categorical variable with no order and binary
 plotPie(df$Attrition, 'Attrition')
+plotPie(df$Department, 'Department')
+plotPie(df$EducationField, 'EducationField')
 plotPie(df$Gender, 'Gender')
-plotPie(df$Over18, 'Over 18')
-plotPie(df$OverTime, 'Over time')
+plotPie(df$JobRole, 'JobRole')
+plotPie(df$MaritalStatus, 'MaritalStatus')
+plotPie(df$OverTime, 'OverTime')
+plotFreq(df, df$PerformanceRating, 'PerformanceRating')
 
-# Categorical
-p0<-plotFreq(df, df$BusinessTravel, 'Business travel')
-p1<-plotFreq(df, df$Department, 'Department')
-p2<-plotFreq(df, df$DistanceFromHome, 'Distance from home')
-p3<-plotFreq(df, df$Education, 'Education')
-plot_grid(p0, p1, p2, p3, nrow=2, ncol=2)
-
-p0<-plotFreq(df, df$EducationField, 'Education field')
-p1<-plotFreq(df, df$EnvironmentSatisfaction, 'Environment satisfaction')
-p2<-plotFreq(df, df$JobInvolvement, 'Job involvement')
-p3<-plotFreq(df, df$JobLevel, 'Job Level')
-plot_grid(p0, p1, p2, p3, nrow=2, ncol=2)
-
-
-plotFreq(df, df$JobRole, 'Job Role')
-
-p0<-plotFreq(df, df$JobSatisfaction, 'Job Satisfaction')
-p1<-plotFreq(df, df$MaritalStatus, 'Marital status')
-p2<-plotFreq(df, df$PerformanceRating, 'Performance Rating')
-p3<-plotFreq(df, df$RelationshipSatisfaction, 'Relationship Satisfaction')
-plot_grid(p0, p1, p2, p3, nrow=2, ncol=2)
-
-# The majority (+83%) of the employees have any or few stocks of the company, MAYBE RELATED WITH ATTRITION?
-p0<-plotFreq(df, df$StockOptionLevel, 'Stock option level')
-p1<-plotFreq(df, df$WorkLifeBalance, 'Work-life balance')
-plot_grid(p0, p1, nrow=1, ncol=2)
-
-
-df <- subset(df, select = -c(Over18))
-
-factorDf <- df[sapply(df, is.factor)]
-
-
+# we make an histogram for categorical variable with order
+plotFreq(df, df$BusinessTravel, 'BusinessTravel')
+plotFreq(df, df$Education, 'Education')
+plotFreq(df, df$EnvironmentSatisfaction, 'EnvironmentSatisfaction')
+plotFreq(df, df$JobInvolvement, 'JobInvolvement')
+plotFreq(df, df$JobLevel, 'JobLevel')
+plotFreq(df, df$JobSatisfaction, 'JobSatisfaction')
+plotFreq(df, df$RelationshipSatisfaction, 'RelationshipSatisfaction')
+plotFreq(df, df$StockOptionLevel, 'StockOptionLevel')
+plotFreq(df, df$WorkLifeBalance, 'WorkLifeBalance')
 ```
+- Nothing special to say but it can be useful later.
 
 ### 3.1.1 Contingency table
 
 ```{r, echo=False, warning=FALSE}
 
-# for all combination between two categorical variable, we make a chisq.test (independance test for categorical var) and we keep variable than are dependant (p-value of the chisq test < 0.05 => we are sure than there are dependant with 95%)
+# for all combination between two categorical variable, we make a chisq.test (independance test for categorical var) and we keep variable than are dependant (p-value of the chisq test < 0.05 => we are sure than there are dependant with > 95%)
 
 i=1
 for (var1 in factorDf[-length(factorDf)]) {
   factorDf3 <- factorDf[-c(1:i)]
   j=1
   for(var2 in factorDf3) {
-    if(attributes(factorDf[i])$names != "Attrition" && attributes(factorDf3[j])$names != "Attrition"){
-      chisq_test <- chisq.test(var1, var2)
-      if(chisq_test$p.value < 0.01) {
-        print(paste0(attributes(factorDf[i])$names, " | ", attributes(factorDf3[j])$names, " | p-value ", chisq_test$p.value))
-        #print(table(var1,var2))
-      }
+    chisq_test <- chisq.test(var1, var2)
+    if(chisq_test$p.value < 0.05) {
+      print(paste0(attributes(factorDf[i])$names, " | ", attributes(factorDf3[j])$names, " | p-value ", chisq_test$p.value))
+      print(table(var1,var2))
     }
     j=j+1
   }
   i=i+1
 }
 
-ggplot(df, aes(Department, ..count..)) + geom_bar(aes(fill = EducationField), position = "dodge")
-ggplot(df, aes(Department, ..count..)) + geom_bar(aes(fill = JobLevel), position = "dodge")
-ggplot(df, aes(Department, ..count..)) + geom_bar(aes(fill = JobRole), position = "dodge")
-ggplot(df, aes(Education, ..count..)) + geom_bar(aes(fill = JobLevel), position = "dodge")
-ggplot(df, aes(EducationField, ..count..)) + geom_bar(aes(fill = JobLevel), position = "dodge")
-ggplot(df, aes(EducationField, ..count..)) + geom_bar(aes(fill = JobRole), position = "dodge")
-ggplot(df, aes(JobLevel, ..count..)) + geom_bar(aes(fill = JobRole), position = "dodge")
-ggplot(df, aes(JobLevel, ..count..)) + geom_bar(aes(fill = StockOptionLevel), position = "dodge")
-ggplot(df, aes(MaritalStatus, ..count..)) + geom_bar(aes(fill = StockOptionLevel), position = "dodge")
+ggplot(data = factorDf) +
+  geom_bar(aes(x = factor(OverTime), fill = factor(JobSatisfaction)), position = "fill")
 
+ggplot(data = factorDf) +
+  geom_bar(aes(x = factor(JobRole), fill = factor(Gender)), position = "fill")
+
+ggplot(data = factorDf) +
+  geom_bar(aes(x = factor(JobLevel), fill = factor(StockOptionLevel)), position = "fill")
+
+ggplot(data = factorDf) +
+  geom_bar(aes(x = factor(MaritalStatus), fill = factor(StockOptionLevel)), position = "fill")
 ```
+
+- We can see that the more an employee make over time the more he likes his job.
+- Women have a little bit more positions of responsibility (in proportion to their number)
+- Single employees have no StockOptionLevel. 
+-Divorced employees have more StockOptionLevel than others employees
+- Despite a p-value < 0.05, looking at the contingency tables we can say that they are not 100% dependent and therefore we cannot eliminate them.
+-   We may group the variable Department and JobRole for create a new variable (categorical variable with the following levels : Representatives R&D, Representatives Sales, Healthcare Representative, Laboratory Technician, Manager Human Resources, Manager R&D, Manager Sales, Directors R&D, Research Scientist, Sales Executive)but we haven't do that because we prefer keep the information about the both variable rather than simplify the dataset by reduce his number of variable.
+- Sellers are more likely to want to quit the company
+- The following variables will be interesting to predict our response variable (Attrition) : Department, EducationField, EnvironmentSatisfaction, JobInvolvement, JobLevel, JobRole, JobSatisfaction, MaritalStatus, OverTime, StockOptionLevel, WorkLifeBalance.
+
 
 ## 3.2 Numerical Variables
 
 ```{r, echo=False}
-
 nonFactorDf <- df[!sapply(df, is.factor)]
 
-#EmployeeNumber
-ggplot(df, aes(x = 1:nrow(df), y = EmployeeNumber)) +
-  geom_point()+
-  labs(x = "Table Index")
+i = 1
+data_names <- attributes(nonFactorDf)$names
+for (variable in nonFactorDf) {
+  hist(variable, main = data_names[i])
+  i = i+1
+}
+```
 
-sd(df$EmployeeNumber)
+-   The variable age seems to follow a normal distribution centered in 36.92 years old.
+-   The daily rate is approximately equi-distributed between the workers it swings between 102\$ and 1499\$per day with frequencies between 80 and 125.
+-   From the plot of Distance from home we can see that the majority of the workers leave near and the more we are far from the work the more frequency of workers decrease with a maximum of distance = 29km.
+-   The hourly rate plot is not that different from the daily rate plot it swings from 30\$ to 100\$ per hour with frequencies between 80 and 120.
+-   The monthly income which the net salary swings changes from 1009\$ to 19999\$ with a high frequency around 2500 and 5000\$.
+-   The monthly rate plot seems to be like daily and hourly rate, it goes form 2094\$ to 26999\$.
+-   The variable num companies that workers worked in is very frequent around 1 and 2 so we can say that the majority of the workers are regular in the company.
+-   The percentage of salary hike of the workers differs from 11% to 25% with a majority between 11% and 14%.
+-   The total working years of the workers goes from 0 to 40 in addition the majority have worked between 5 and 20 years so the majority has a certain experience in the world of work.
+-   Training time last year , may be we can delete ... to see !
+-   The plot of the variable years at company decrease from 40 to 0 with a big frequency around 0 and 10 years.
+-   The variable years at current role seems to be like the variable years at company.
+-   The variable years since last promotion is very frequent around 1 and 2 then it decreases very quickly.
 
-# Como se puede observar con la grafica de los valores respecto a su indice en la tabla,
-# estamos frente a un indice para cada empleado sin un significado más alla del numerico y
-# por lo tanto debemos eliminar la columna.
+```{r, echo=False}
 
-
-#EmployeeCount
-ggplot(df, aes(x = 1:nrow(df), y = EmployeeCount)) +
-  geom_point()+
-  labs(x = "Table Index")
-
-sd(df$EmployeeCount)
-
-#As we can see in the plot of the variable and the sd, all the values of the table correspond to 1.
-
+nonFactorDf <- df[!sapply(df, is.factor)]
 
 #RateVariables 
 
@@ -291,24 +287,12 @@ ggplot(df, aes(x = 1:nrow(df), y = DailyRate / HourlyRate)) +
   geom_point()+
   labs(x = "Table Index")
 
-
-
-corr <- round(cor(nonFactorDf), 1)
-
-
-#ggcorrplot(corr, hc.order = TRUE, type = "lower",
-#   lab = FALSE)
-
-#ggcorrplot(corr, method = "circle")
-
-
-
 #Remove redundantcy with lineal correlation study
 
 correlationMatrix <- cor(nonFactorDf)
 
 print(correlationMatrix)
-# find attributes that are highly corrected (ideally >0.75)
+# find attributes that are highly corrected (ideally > 0.75)
 highlyCorrelated <- findCorrelation(correlationMatrix, cutoff=0.75)
 # print indexes of highly correlated attributes
 print(highlyCorrelated)
@@ -319,56 +303,78 @@ print(highlyCorrelated)
 # We should think of eliminating the variables that are highly correlated.
 # Probably doing and stadistic test would be a good idea to know if we have to
 # delete them or no.
-
-df <- subset(df, select = -c(EmployeeNumber, EmployeeCount, StandardHours))
-
-nonFactorDf <- df[!sapply(df, is.factor)]
-
-
-
-# Analysis of TrainingTimesLastYear
-hist(df, df$TrainingTimesLastYear, 1, "TrainingTimesLastYear")
-var(df$TrainingTimesLastYear)
-
-count(df$TrainingTimesLastYear)
-
-
-# Analysis of PercentSalaryHike
-
-hist(df, df$PercentSalaryHike, 1, "PercentSalaryHike")
-
-
-count(df$PerformanceRating)
-
-# strongly correlated
-ggplot(df) + geom_boxplot(aes(x = PercentSalaryHike, y = PerformanceRating)) 
-
-
-
-
-ggplot(df,aes(x=TotalWorkingYears, y=MonthlyIncome)) +
-  geom_point() +
-  geom_smooth(method='lm') 
-
-
-
-ggplot(df,aes(x=YearsWithCurrManager , y=YearsAtCompany)) +
-  geom_point() +
-  geom_smooth(method='lm') 
-
-
-ggplot(df,aes(x=YearsInCurrentRole, y=YearsWithCurrManager)) +
-  geom_point() +
-  geom_smooth(method='lm') 
-
-
-
-
-hist(df, df$MonthlyIncome, 350, "MonthlyIncome")
-
 ```
 
-### 3.2.1 Rank importance of variables
+
+```{r}
+i=1
+for (var1 in nonFactorDf[-length(nonFactorDf)]) {
+  nonFactorDf3 <- nonFactorDf[-c(1:i)]
+  j=1
+  for(var2 in nonFactorDf3) {
+    correlation <- cor(var1, var2)
+    if(correlation > 0.75) {
+      print(paste0(attributes(nonFactorDf[i])$names, " | ", attributes(nonFactorDf3[j])$names, " | correlation ", correlation))
+    }
+    j=j+1
+  }
+  i=i+1
+}
+```
+
+### 3.2.1 Dependancy between Numerical variable and Response variable
+
+```{r}
+#Now we are going to do  ANOVA test wish is a is a type of statistical test used to determine if there is a statistically significant difference between two or more categorical groups by testing for differences of means using variance.
+#We will do ANOVA test for combination of each numerical variable and the categorical response variable (Attrition).
+#We will keep the numerical variable when the p-value of the ANOVA test is < 0.05, the cases where we are pretty sure that there is a significant difference of means (means of the numerical variable tested) because of the attrition .
+
+i=1
+for (var1 in nonFactorDf) {
+  pvalue = oneway.test(var1~df$Attrition)$p.value
+  if(pvalue < 0.05) {
+    print(paste0(attributes(nonFactorDf[i])$names, " | Attrition | p-value : ", pvalue))
+  }
+  i = i+1
+}
+
+#ggplot(df, aes(x=Age, y = ..density.., color=Attrition)) +
+#     geom_histogram()
+
+ggplot(df, aes(x=Age, color=Attrition)) +
+     geom_density()
+
+ggplot(df, aes(x=DailyRate, color=Attrition)) +
+     geom_density()
+
+ggplot(df, aes(x=DistanceFromHome, color=Attrition)) +
+     geom_density()
+
+ggplot(df, aes(x=TotalWorkingYears, color=Attrition)) +
+     geom_density()
+
+ggplot(df, aes(x=TrainingTimesLastYear, color=Attrition)) +
+     geom_density()
+
+ggplot(df, aes(x=YearsAtCompany, color=Attrition)) +
+     geom_density()
+
+ggplot(df, aes(x=YearsInCurrentRole, color=Attrition)) +
+     geom_density()
+
+ggplot(df, aes(x=YearsSinceLastPromotion, color=Attrition)) +
+     geom_density()
+
+ggplot(df, aes(x=YearsWithCurrManager, color=Attrition)) +
+     geom_density()
+```
+
+-So we can say that if an employee want to leave the company, he has probably a higher value than the mean for the following variable : DistanceFromHome.
+and a smaller value for : Age, DailyRate, TotalWorkingYears, TrainingTimesLastYear, YearsAtCompany, YearsInCurrentRole, YearsSinceLastPromotion, YearsWithCurrManager.
+- We can expect that a Young Employee with little experience in the company has more risk of leaving the company.
+
+
+### 3.2.2 Rank importance of variables
 
 ```{r, echo=False}
 
@@ -463,55 +469,11 @@ figure_hist_2
 ```{r, echo=False}
 
 mdi = mahalanobis(nonFactorDf,center=apply(nonFactorDf,2,mean),cov=var(nonFactorDf))
-plot(density(mdi), main="Density curve of Mahalanobis distance")
+plot(density(mdi))
 cutoff <- qchisq(p = 0.99 , ncol(nonFactorDf))
-
-# Create new DataFrame and set a new categorical variable to identify which are multivariate outliers or not
-
-tmpDF<-df
-tmpDF$MultivariateOutlier<-0
-tmpDF[mdi>cutoff,]$MultivariateOutlier<-1
-tmpDF$MultivariateOutlier<-as.factor(tmpDF$MultivariateOutlier)
-
-monthlyIncomeMean<-mean(df$MonthlyIncome)
-
-## Display mean for Whole dataset, non multivariate outliers and multivariate outliers
-apply(nonFactorDf, 2, mean)
-apply(nonFactorDf[mdi<=cutoff,], 2, mean)
-apply(nonFactorDf[mdi>cutoff,], 2, mean)
-
-# Non Outliers individuals
-dfMahalanobisNonOutliers<-df[mdi<=cutoff,]
-
-# Outliers individuals
-dfMahalanobisOutliers<-df[mdi>cutoff,]
-
-# Subgroup found in Outliers individuals
-dfMahalanobisOutliers2<-dfMahalanobisOutliers[dfMahalanobisOutliers$MonthlyIncome<monthlyIncomeMean,]
-dfMahalanobisOutliers2[,c("Age","MonthlyIncome","NumCompaniesWorked","TotalWorkingYears","YearsAtCompany","YearsInCurrentRole","YearsSinceLastPromotion","YearsWithCurrManager")];
-
-
-## Color By Outliers (Whole Dataset)
-ggplot(tmpDF, aes(MonthlyIncome, Age, color=MultivariateOutlier))+
-  geom_point()
-ggplot(tmpDF, aes(MonthlyIncome, TotalWorkingYears, color=MultivariateOutlier))+
-  geom_point()
-ggplot(tmpDF, aes(Age, TotalWorkingYears, color=MultivariateOutlier))+
-  geom_point()
-ggplot(tmpDF, aes(PercentSalaryHike, YearsAtCompany, color=MultivariateOutlier))+
-  geom_point()
-ggplot(tmpDF, aes(JobRole, YearsAtCompany, color=MultivariateOutlier))+
-  geom_point()
-ggplot(tmpDF, aes(PercentSalaryHike, TotalWorkingYears, color=MultivariateOutlier))+
-  geom_point()
-ggplot(tmpDF, aes(JobRole, TotalWorkingYears, color=MultivariateOutlier))+
-  geom_point()
-
-## Color By JobRole (Only Outliers)
-ggplot(dfMahalanobisOutliers, aes(MonthlyIncome, Age, color=JobRole))+
-  geom_point()
-ggplot(dfMahalanobisOutliers, aes(MonthlyIncome, TotalWorkingYears, color=JobRole))+
-  geom_point()
+## Display observation whose distance greater than cutoff value
+nonFactorDf[mdi>cutoff,]
+#nonFactorDf<-data.frame(nonFactorDf[mdi>cutoff,],df[mdi>cutoff,1])
 
 ```
 
@@ -533,8 +495,11 @@ df$SalaryHikePerYear <- df$PercentSalaryHike / df$SalaryHikePerYear
 df$TotalWorkingYears_aux <- df$TotalWorkingYears
 df$TotalWorkingYears_aux[df$TotalWorkingYears_aux == 0] <- 0.5 
 
-df$AverageYearsCompany <- df$TotalWorkingYears_aux / df$NumCompaniesWorked
+df$NumCompaniesWorked_aux <- df$NumCompaniesWorked + 1
 
+df$AverageYearsCompany <- df$TotalWorkingYears_aux / df$NumCompaniesWorked_aux
+
+df$NumCompaniesWorked_aux <- NULL
 df$TotalWorkingYears_aux <- NULL
 
 
@@ -550,8 +515,6 @@ df$DifferentManagers[df$DifferentManagers>0]<-1
 df$DifferentManagers<-as.factor(df$DifferentManagers)
 levels(df$DifferentManagers)<-c("No","Yes")
 
-ggplot(dfMahalanobisOutliers, aes(MonthlyIncome, TotalWorkingYears, color=JobRole))+
-  geom_point()
 ```
 
 # 6. Exploratory Data Analysis
@@ -679,10 +642,6 @@ ggplot(df, aes(x=MonthlyIncome, y=EducationField, fill=MaritalStatus)) +
 ggplot(df, aes(x=MonthlyIncome, y=Attrition, fill=Gender)) +
   geom_boxplot()
 
-
-
-
-
 ```
 
 # 7. Unbalanced Dataset
@@ -691,11 +650,9 @@ ggplot(df, aes(x=MonthlyIncome, y=Attrition, fill=Gender)) +
 
 # Atrition
 # Unvalenced dataset. Hay que hacer un balanceo de datos
-slices <- c(as.data.frame(table(df$Attrition))[1,2],as.data.frame(table(df$Attrition))[2,2])
-lbls <- c(as.data.frame(table(df$Attrition))[1,1],as.data.frame(table(df$Attrition))[2,1])
-pie(slices, labels = lbls, main="Atrittion")
-
-
+slices <- c(as.data.frame(table(df$Attrition))[1,2], as.data.frame(table(df$Attrition))[2,2])
+lbls <- c(as.data.frame(table(df$Attrition))[1,1], as.data.frame(table(df$Attrition))[2,1])
+pie(slices, labels = lbls, main="Attrition")
 ```
 
 # 8. Normalization
@@ -710,6 +667,22 @@ myvars_2 <- c("Age","DailyRate", "HourlyRate", "MonthlyIncome", "MonthlyRate",
 
 options(contrasts=c("contr.treatment","contr.treatment"))
 
+res.con<-condes(df,14)
+res.con<-condes(df,4, proba= 0.25)
+str(res.con)
+names(res.con)
+res.con$quanti
+res.con$quali
+res.con$category
+
+# Just to try: Let type be the response for example purposes
+names(df)
+res.cat<-catdes(df,num.var=6)
+names(res.cat)
+res.cat$test.chi2
+res.cat$category
+res.cat$quanti.var
+res.cat$quanti
 ```
 
 # 9. Rank new variables
@@ -730,31 +703,5 @@ importance <- varImp(model, scale=FALSE)
 print(importance)
 
 plot(importance)
-
-```
-
-# 10. Save the new datasets
-
-```{r, echo=False}
-
-# Preprocesed Dataset
-write.table(df, file = "./Data/preprocessed_IBM_Employees.csv", sep = ",", na = "NA", dec = ".", row.names = FALSE, col.names = TRUE)
-
-
-# Dataset For PCA
-df_PCA<-subset(df, select = -c(Department,EducationField))
-df_PCA<-df_PCA[!sapply(df_PCA, is.factor)]
-write.table(df_PCA, file = "./Data/preprocessed_PCA_IBM_Employees.csv", sep = ",", na = "NA", dec = ".", row.names = FALSE, col.names = TRUE)
-
-# Dataset For MCA
-df_MCA<-subset(df, select = -c(Department,EducationField))
-df_MCA<-df_MCA[!sapply(df_MCA, is.factor)]
-write.table(df_MCA, file = "./Data/preprocessed_MCA_IBM_Employees.csv", sep = ",", na = "NA", dec = ".", row.names = FALSE, col.names = TRUE)
-
-# Dataset For MFA
-#write.table(dd, file = "./Data/preprocessed_MFA_IBM_Employees.csv", sep = ",", na = "NA", dec = ".", row.names = FALSE, col.names = TRUE)
-
-# Dataset For Machine Learning Models
-#write.table(dd, file = "./Data/preprocessed_ML_Employees.csv", sep = ",", na = "NA", dec = ".", row.names = FALSE, col.names = TRUE)
 
 ```
