@@ -9,7 +9,7 @@ TODO: EXPLANATION OF THIS PART
 
 ```{r, setup, include=FALSE, echo=FALSE}
 #knitr::opts_chunk$set(echo = TRUE)
-requiredPackages <- c("ggplot2","rapportools","plyr","cowplot", "ggpubr", "corrplot", "corrplot", "mlbench", "caret", "FactoMineR")
+requiredPackages <- c("ggplot2","rapportools","plyr","cowplot", "ggpubr", "corrplot", "corrplot", "mlbench", "caret", "FactoMineR", "ggcorrplot")
 packages.check <- lapply(requiredPackages, FUN = function(x) {
   if(!require(x, character.only = TRUE)) {
     install.packages(x, dependencies = TRUE)
@@ -290,6 +290,16 @@ ggplot(df, aes(x = 1:nrow(df), y = DailyRate / HourlyRate)) +
 
 
 
+corr <- round(cor(nonFactorDf), 1)
+
+
+#ggcorrplot(corr, hc.order = TRUE, type = "lower",
+#   lab = FALSE)
+
+#ggcorrplot(corr, method = "circle")
+
+
+
 #Remove redundantcy with lineal correlation study
 
 correlationMatrix <- cor(nonFactorDf)
@@ -310,6 +320,48 @@ print(highlyCorrelated)
 df <- subset(df, select = -c(EmployeeNumber, EmployeeCount, StandardHours))
 
 nonFactorDf <- df[!sapply(df, is.factor)]
+
+
+
+# Analysis of TrainingTimesLastYear
+hist(df, df$TrainingTimesLastYear, 1, "TrainingTimesLastYear")
+var(df$TrainingTimesLastYear)
+
+count(df$TrainingTimesLastYear)
+
+
+# Analysis of PercentSalaryHike
+
+hist(df, df$PercentSalaryHike, 1, "PercentSalaryHike")
+
+
+count(df$PerformanceRating)
+
+# strongly correlated
+ggplot(df) + geom_boxplot(aes(x = PercentSalaryHike, y = PerformanceRating)) 
+
+
+
+
+ggplot(df,aes(x=TotalWorkingYears, y=MonthlyIncome)) +
+  geom_point() +
+  geom_smooth(method='lm') 
+
+
+
+ggplot(df,aes(x=YearsWithCurrManager , y=YearsAtCompany)) +
+  geom_point() +
+  geom_smooth(method='lm') 
+
+
+ggplot(df,aes(x=YearsInCurrentRole, y=YearsWithCurrManager)) +
+  geom_point() +
+  geom_smooth(method='lm') 
+
+
+
+
+hist(df, df$MonthlyIncome, 350, "MonthlyIncome")
 
 ```
 
