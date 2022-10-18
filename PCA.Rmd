@@ -13,17 +13,18 @@ packages.check <- lapply(requiredPackages, FUN = function(x) {
     library(x, character.only = TRUE)
   }
 })
+
+PROJECT_PATH="~/Documents/UPC/1Q/MultivariateAnalysis_MVVA/Labs/MultivariantAnalysis_IBMDataset"
+
+setwd(PROJECT_PATH)
+
 #mixtools, MVN, robustbase, hola
 ```
 
 1.  Import data
 ```{R}
 #load("~/Documents/UPC/1Q/MultivariateAnalysis_MVVA/Labs/MultivariantAnalysis_IBMDataset/dataframe_PCA_MCA_MFA.Rdata")
-#numDf <- df_PCA_MCA_MFA[!sapply(df_PCA_MCA_MFA, is.factor)]
-
-
-numDf <- read.csv("C:/Users/jordi/Documents/GitHub/MultivariantAnalysis_IBMDataset/Data/Preprocessed_PCA_IBM_Employees.csv")
-
+load("./Data/df_preprocessed_PCA_IBM_Employees.Rdata") 
 
 
 ```
@@ -32,7 +33,7 @@ numDf <- read.csv("C:/Users/jordi/Documents/GitHub/MultivariantAnalysis_IBMDatas
 
 ```{r, echo=TRUE}
 
-pca <- prcomp(numDf, scale = TRUE)
+pca <- prcomp(df_PCA, scale = TRUE)
 pca$rotation
 
 fviz_eig(pca, addlabels=TRUE, hjust = -0.3) +
@@ -53,7 +54,7 @@ prop_varianza_acum
 
 ```{r, echo=TRUE}
 
-pca_values <- PCA(numDf, scale.unit = TRUE, graph = FALSE)
+pca_values <- PCA(df_PCA, scale.unit = TRUE, graph = FALSE)
 
 # Extract the eigenvalues/variances of principal components
 get_eigenvalue(pca_values)

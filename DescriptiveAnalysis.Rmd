@@ -18,6 +18,7 @@ packages.check <- lapply(requiredPackages, FUN = function(x) {
 })
 
 PROJECT_PATH="~/Documents/UPC/1Q/MultivariateAnalysis_MVVA/Labs/MultivariantAnalysis_IBMDataset"
+
 setwd(PROJECT_PATH)
 
 ```
@@ -172,25 +173,12 @@ ggplot(df, aes(x = 1:nrow(df), y = DailyRate / HourlyRate)) +
   geom_point()+
   labs(x = "Table Index")
 
-#Remove redundantcy with lineal correlation study
-
-correlationMatrix <- cor(nonFactorDf)
-
-print(correlationMatrix)
-# find attributes that are highly corrected (ideally > 0.75)
-highlyCorrelated <- findCorrelation(correlationMatrix, cutoff=0.75)
-# print indexes of highly correlated attributes
-print(highlyCorrelated)
-
-#Highly corralated variables:
-# - Total Working years - monthly income
-# - Years with current manager - Years at the company - Years current role
-# We should think of eliminating the variables that are highly correlated.
-# Probably doing and stadistic test would be a good idea to know if we have to
-# delete them or no.
 ```
 
+## 3.1 Correlation study
+
 ```{r}
+
 i=1
 for (var1 in nonFactorDf[-length(nonFactorDf)]) {
   nonFactorDf3 <- nonFactorDf[-c(1:i)]
@@ -204,9 +192,17 @@ for (var1 in nonFactorDf[-length(nonFactorDf)]) {
   }
   i=i+1
 }
+
+#Highly corralated variables:
+# - Total Working years - monthly income
+# - Years with current manager - Years at the company - Years current role
+# We should think of eliminating the variables that are highly correlated.
+# Probably doing and stadistic test would be a good idea to know if we have to
+# delete them or no.
+
 ```
 
-### 3.2.1 Dependancy between Numerical variable and Response variable
+## 3.2 Dependancy between Numerical variable and Response variable
 
 ```{r}
 #Now we are going to do  ANOVA test wish is a is a type of statistical test used to determine if there is a statistically significant difference between two or more categorical groups by testing for differences of means using variance.
@@ -251,32 +247,15 @@ ggplot(df, aes(x=YearsSinceLastPromotion, color=Attrition)) +
 
 ggplot(df, aes(x=YearsWithCurrManager, color=Attrition)) +
      geom_density()
+
+ggplot(df, aes(x=MonthlyIncome, color=Attrition)) +
+     geom_density()
+
 ```
 
 -So we can say that if an employee want to leave the company, he has probably a higher value than the mean for the following variable : DistanceFromHome. and a smaller value for : Age, DailyRate, TotalWorkingYears, TrainingTimesLastYear, YearsAtCompany, YearsInCurrentRole, YearsSinceLastPromotion, YearsWithCurrManager. - We can expect that a Young Employee with little experience in the company has more risk of leaving the company.
 
-### 3.2.2 Rank importance of variables
-
-```{r, echo=False}
-
-tmpDf<-data.frame(nonFactorDf,factorDf['Attrition'])
-
-control <- trainControl(method="repeatedcv", number=10, repeats=3)
-
-model <- train(Attrition~., data=tmpDf, method="lvq", preProcess="scale", trControl=control)
-
-importance <- varImp(model, scale=FALSE)
-
-print(importance)
-
-plot(importance)
-
-
-#https://machinelearningmastery.com/feature-selection-with-the-caret-r-package/
-
-```
-
-### 3.1.1 Contingency table
+## 3.3 Contingency table
 
 ```{r, echo=False, warning=FALSE}
 
@@ -318,7 +297,7 @@ ggplot(data = factorDf) +
 -   Sellers are more likely to want to quit the company
 -   The following variables will be interesting to predict our response variable (Attrition) : Department, EducationField, EnvironmentSatisfaction, JobInvolvement, JobLevel, JobRole, JobSatisfaction, MaritalStatus, OverTime, StockOptionLevel, WorkLifeBalance.
 
-# 6. Exploratory Data Analysis
+## 3.4 Extra exploratory Data Analysis
 
 ```{r, echo=False}
 
@@ -370,9 +349,6 @@ figure
 
 
 # Scatterplot
-c("PercentSalaryHike", "TotalWorkingYears", "TrainingTimesLastYear", "YearsAtCompany", 
-  "YearsInCurrentRole","YearsSinceLastPromotion", "YearsWithCurrManager", "StandardHours", 
-  "MonthlyIncome")
 
 ggplot(df, aes(x=MonthlyIncome, y=YearsAtCompany, color=Attrition)) + 
   geom_point() +
@@ -442,5 +418,15 @@ ggplot(df, aes(x=MonthlyIncome, y=EducationField, fill=MaritalStatus)) +
 
 ggplot(df, aes(x=MonthlyIncome, y=Attrition, fill=Gender)) +
   geom_boxplot()
+
+
+ggplot(df, aes(StockOptionLevel, ..count..)) + geom_bar(aes(fill = MaritalStatus), position = "dodge")
+
+ggplot(df, aes(StockOptionLevel, ..count..)) + geom_bar(aes(fill = Attrition), position = "dodge")
+
+ggplot(df, aes(JobRole, ..count..)) + geom_bar(aes(fill = Gender), position = "dodge")
+
+summary(df$Attrition)
+summary(df$Attrition[df$MonthlyIncome<4000])
 
 ```

@@ -58,7 +58,7 @@ setwd(PROJECT_PATH)
 ## 1.1 Load Data and useful functions
 
 ```{r, echo=TRUE}
-#df <- read.csv("C:/Users/jordi/Desktop/mva/data_mva.csv")
+
 df <- read.csv("./Data/IBM_Employees.csv")
 
 plotFreq <- function(df, feature, xlabel) {
@@ -324,7 +324,7 @@ nonFactorDf <- df[!sapply(df, is.factor)]
 
 
 # Analysis of TrainingTimesLastYear
-hist(df, df$TrainingTimesLastYear, 1, "TrainingTimesLastYear")
+#hist(df, df$TrainingTimesLastYear, 1, "TrainingTimesLastYear")
 var(df$TrainingTimesLastYear)
 
 count(df$TrainingTimesLastYear)
@@ -332,7 +332,7 @@ count(df$TrainingTimesLastYear)
 
 # Analysis of PercentSalaryHike
 
-hist(df, df$PercentSalaryHike, 1, "PercentSalaryHike")
+#hist(df, df$PercentSalaryHike, 1, "PercentSalaryHike")
 
 
 count(df$PerformanceRating)
@@ -361,7 +361,7 @@ ggplot(df,aes(x=YearsInCurrentRole, y=YearsWithCurrManager)) +
 
 
 
-hist(df, df$MonthlyIncome, 350, "MonthlyIncome")
+#hist(df, df$MonthlyIncome, 350, "MonthlyIncome")
 
 ```
 
