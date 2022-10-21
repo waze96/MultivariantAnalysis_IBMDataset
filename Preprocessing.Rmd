@@ -17,7 +17,7 @@ packages.check <- lapply(requiredPackages, FUN = function(x) {
   }
 })
 
-PROJECT_PATH="~/Documents/UPC/1Q/MultivariateAnalysis_MVVA/Labs/MultivariantAnalysis_IBMDataset"
+PROJECT_PATH="C:/Users/david/Documents/GitHub/MultivariantAnalysis_IBMDataset"
 
 setwd(PROJECT_PATH)
 
@@ -304,6 +304,7 @@ corr <- round(cor(nonFactorDf), 1)
 
 correlationMatrix <- cor(nonFactorDf)
 
+
 print(correlationMatrix)
 # find attributes that are highly corrected (ideally >0.75)
 highlyCorrelated <- findCorrelation(correlationMatrix, cutoff=0.75)
@@ -552,6 +553,52 @@ plot(importance)
 ```
 
 # 7. Save the new datasets
+
+```{r, echo=False}
+
+df_no_corr <- df[,c("Age", "DailyRate", "HourlyRate","MonthlyIncome", "MonthlyRate","NumCompaniesWorked","PercentSalaryHike", "TrainingTimesLastYear","YearsAtCompany","YearsSinceLastPromotion",
+"SalaryHikePerYear","AverageYearsCompany")]
+
+
+corr <-round(cor(df_no_corr),1)
+
+
+ggcorrplot(corr,
+           lab = TRUE, 
+           lab_size = 3, 
+           method="square", 
+           colors = c("blue", "white", "red"), 
+           title="Correlation Matrix", 
+           ggtheme=theme_minimal())
+
+
+save(df_no_corr, file = "S")
+
+```
+
+```{r, echo=False}
+
+df_no_corr <- df[,c("Age","MonthlyIncome", "NumCompaniesWorked","PercentSalaryHike", "TrainingTimesLastYear","YearsAtCompany","YearsSinceLastPromotion",
+"SalaryHikePerYear","AverageYearsCompany")]
+
+
+corr <-round(cor(df_no_corr),1)
+
+
+ggcorrplot(corr,
+           lab = TRUE, 
+           lab_size = 3, 
+           method="square", 
+           colors = c("blue", "white", "red"), 
+           title="Correlation Matrix", 
+           ggtheme=theme_minimal())
+
+
+save(df_no_corr, file = "./Data/aux_2.Rdata")
+
+
+
+```
 
 ```{r, echo=False}
 
