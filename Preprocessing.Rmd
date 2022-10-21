@@ -449,6 +449,7 @@ tmpDF<-df
 tmpDF$MultivariateOutlier<-0
 tmpDF[mdi>cutoff,]$MultivariateOutlier<-1
 tmpDF$MultivariateOutlier<-as.factor(tmpDF$MultivariateOutlier)
+df$MultivariateOutlier<-tmpDF$MultivariateOutlier
 
 monthlyIncomeMean<-mean(df$MonthlyIncome)
 
@@ -616,7 +617,7 @@ save(df_PCA, file = "./Data/df_preprocessed_PCA_IBM_Employees.Rdata")
 
 # Dataset For MCA
 df_MCA<-subset(df, select = -c(Department,EducationField))
-df_MCA<-df_MCA[!sapply(df_MCA, is.factor)]
+df_MCA<-df_MCA[sapply(df_MCA, is.factor)]
 save(df_MCA, file = "./Data/df_preprocessed_MCA_IBM_Employees.Rdata")
 
 # Dataset For MFA
