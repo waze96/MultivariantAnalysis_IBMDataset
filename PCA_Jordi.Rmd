@@ -1,0 +1,131 @@
+---
+title: "PCA"
+output: pdf_document
+date: "2022-10-15"
+---
+
+```{r, setup, include=FALSE, echo=FALSE}
+#knitr::opts_chunk$set(echo = TRUE)
+requiredPackages <- c("ggplot2", "FactoMineR", "factoextra")
+packages.check <- lapply(requiredPackages, FUN = function(x) {
+  if(!require(x, character.only = TRUE)) {
+    install.packages(x, dependencies = TRUE)
+    library(x, character.only = TRUE)
+  }
+})
+
+PROJECT_PATH="C:/Users/david/Documents/GitHub/MultivariantAnalysis_IBMDataset"
+
+setwd(PROJECT_PATH)
+
+#mixtools, MVN, robustbase, hola
+```
+
+1.  Import data
+```{R}
+#load("~/Documents/UPC/1Q/MultivariateAnalysis_MVVA/Labs/MultivariantAnalysis_IBMDataset/dataframe_PCA_MCA_MFA.Rdata")
+load("./Data/df_preprocessed_PCA_eliminate_corr.Rdata") 
+
+load("./Data/aux_2.Rdata") 
+
+```
+
+# 1. Scree plot
+
+```{r, echo=TRUE}
+df_no_corr
+
+pca_values <- PCA(df_no_corr, scale.unit = TRUE, graph = FALSE)
+pca_values
+
+# Extract the eigenvalues/variances of principal components
+get_eigenvalue(pca_values)
+
+# Visualize the eigenvalues
+fviz_eig(pca_values, addlabels=TRUE, hjust = -0.3) +
+  ylim(0, 40)
+
+#  Extract the results for individuals and variables, respectively.
+get_pca_ind(pca_values)
+get_pca_var(pca_values)
+
+#Visualize the results individuals and variables, respectively.
+fviz_pca_ind(pca_values)
+fviz_pca_var(pca_values)
+
+
+#Make a biplot of individuals and variables.
+fviz_pca_biplot(pca_values)
+```
+
+
+
+
+```{r, echo=TRUE}
+
+pca_values <- PCA(df_no_corr, scale.unit = TRUE, graph = FALSE)
+pca_values
+
+# Extract the eigenvalues/variances of principal components
+get_eigenvalue(pca_values)
+
+# Visualize the eigenvalues
+fviz_eig(pca_values, addlabels=TRUE, hjust = -0.3) +
+  ylim(0, 40)
+
+#  Extract the results for individuals and variables, respectively.
+get_pca_ind(pca_values)
+get_pca_var(pca_values)
+
+#Visualize the results individuals and variables, respectively.
+fviz_pca_ind(pca_values)
+fviz_pca_var(pca_values)
+
+
+#Make a biplot of individuals and variables.
+fviz_pca_biplot(pca_values)
+
+```
+
+
+
+
+## 1.2 Dataframe basic information
+
+Show a summary of the current dataframe.
+
+```{r, echo=TRUE}
+
+#fviz_pca_ind(pca)
+fviz_pca_ind(pca, geom="point")
+fviz_pca_ind(pca, col.ind="cos2")
+fviz_pca_ind(pca_values, label="none",axes = c(3,4), habillage=df$Attrition,
+             addEllipses=TRUE, ellipse.level=0.95)
+
+
+fviz_pca_var(pca)
+
+```
+
+```{R}
+for (i in c(1:4)){
+  for (c in c(1:4)){
+    if (c != i){
+      plot(fviz_pca_ind(pca_values, label="none",axes = c(i,c), habillage=df$Attrition,addEllipses=TRUE, ellipse.level=0.95))
+      
+    }
+  }
+}
+```
+
+
+
+
+
+
+
+
+
+
+
+
