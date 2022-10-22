@@ -14,7 +14,7 @@ packages.check <- lapply(requiredPackages, FUN = function(x) {
   }
 })
 
-PROJECT_PATH="~/Documents/UPC/1Q/MultivariateAnalysis_MVVA/Labs/MultivariantAnalysis_IBMDataset"
+PROJECT_PATH="C:/Users/david/Documents/GitHub/MultivariantAnalysis_IBMDataset"
 
 setwd(PROJECT_PATH)
 
