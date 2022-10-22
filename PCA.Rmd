@@ -51,6 +51,7 @@ sum(prop_varianza)
 
 prop_varianza_acum <- cumsum(prop_varianza)
 prop_varianza_acum
+
 # Les 4 primeres 59.18 % de la varianxa
 
 ```
@@ -118,10 +119,6 @@ pca_values1 <- PCA(df1, scale.unit = TRUE, graph = FALSE)
 # Extract the eigenvalues/variances of principal components
 get_eigenvalue(pca_values1)
 
-#  Extract the results for individuals and variables, respectively.
-get_pca_ind(pca_values1)
-get_pca_var(pca_values1)
-
 #Visualize the results individuals and variables, respectively. Clustering by all possible Qualitative Variables to see if some can be explained well for the PCA's
 # for (var1 in colnames(df_MCA)) {
 #   plot(fviz_pca_ind(pca_values1, 
@@ -172,13 +169,13 @@ fviz_pca_var(pca_values1,axes=c(3,4), col.var="contrib",
              repel = TRUE # Avoid text overlapping
              )
 
-fviz_contrib(pca_values1, choice = "var", axes = 1, top = 10)
-fviz_contrib(pca_values1, choice = "var", axes = 2, top = 10)
-fviz_contrib(pca_values1, choice = "var", axes = 3, top = 10)
-fviz_contrib(pca_values1, choice = "var", axes = 4, top = 10)
+fviz_contrib(pca_values1, choice = "var", axes = 1, top = 10, repel = TRUE)
+fviz_contrib(pca_values1, choice = "var", axes = 2, top = 10, repel = TRUE)
+fviz_contrib(pca_values1, choice = "var", axes = 3, top = 10, repel = TRUE)
+fviz_contrib(pca_values1, choice = "var", axes = 4, top = 10, repel = TRUE)
 
 
 #Make a biplot of individuals and variables.
-fviz_pca_biplot(pca_values1)
+fviz_pca_biplot(pca_values1, col.ind="green", col.var="black", label="var", repel = TRUE)
 
 ```

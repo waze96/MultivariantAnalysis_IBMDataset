@@ -1,0 +1,470 @@
+---
+title: "Missing values"
+output: pdf_document
+date: "2022-10-14"
+---
+
+```{r, setup, include=FALSE, echo=TRUE}
+#knitr::opts_chunk$set(echo = TRUE)
+library(mice)
+library(ggcorrplot)
+library(naniar)
+library(ggplot2)
+library(finalfit) 
+library(visdat)
+library(dplyr)
+library(dlookr)
+library(DMwR2) #knn
+library(GGally)
+library(VIM)
+library(missForest)
+#mixtools, MVN, robustbase, hola
+```
+
+# Content Table
+
+1.  Introduction
+
+    1.1 Load Data
+
+    1.2 DataFrame Basic Information
+
+2.  Formatting issues
+
+3.  Check missing values
+
+  3.1 Generate not random NA MNAR
+
+  3.2 Generate random NA MCAR
+
+4. Missing values imputation
+
+    4.1 Knn method for MNAR 
+
+    4.2 Knn method for MCAR
+    
+    4.3 Random Forest method for MNAR
+    
+    4.4 Random Forest method for MCAR
+      
+    4.5 mice method for MNAR
+    
+    4.6 mice method for MCAR
+    
+5. Final Plots and Graphs
+
+# 1. Introduction
+
+## 1.1 Load Data
+
+```{r, echo=TRUE}
+df <- read.csv("C:/Users/David/Downloads/WA_Fn-UseC_-HR-Employee-Attrition.csv")
+```
+
+## 1.2 Dataframe basic information
+
+Show a summary of the current dataframe.
+
+```{r, echo=TRUE}
+explanatory = c("Age",
+                "DailyRate",
+                "DistanceFromHome",
+                "HourlyRate",
+                "MonthlyIncome",
+                "MonthlyRate",
+                "NumCompaniesWorked",
+                "PercentSalaryHike",
+                "TotalWorkingYears",
+                "TrainingTimesLastYear",
+                "YearsAtCompany",
+                "YearsInCurrentRole",
+                "YearsSinceLastPromotion",
+                "YearsWithCurrManager",
+                "Gender",
+                "OverTime",
+                "BusinessTravel",
+                "Department",
+                "Education",
+                "EducationField",
+                "EnvironmentSatisfaction",
+                "JobInvolvement",
+                "JobLevel",
+                "PerformanceRating",
+                "JobRole",
+                "JobSatisfaction",
+                "MaritalStatus",
+                "RelationshipSatisfaction",
+                "StockOptionLevel",
+                "WorkLifeBalance")
+dependent = "Attrition"
+str(df)
+head(df)
+df%>% ff_glimpse (dependent, explanatory)# best
+vis_dat(df)
+```
+
+# 2. Formatting issues
+
+-   Check that Categorical variables are correctly processed by R, so all interpreted as factors.
+-   Set short-meaningful level names for the categorical variables.
+-   Reduce number of levels if has sense.
+
+```{r, echo=False}
+# Remove useless attributes
+df <- subset(df, select = -c(EmployeeCount, StandardHours,Over18, EmployeeNumber))
+#Transform to factor
+df$JobInvolvement=as.factor(df$JobInvolvement)
+df$JobLevel=as.factor(df$JobLevel)
+df$PerformanceRating=as.factor(df$PerformanceRating)
+df$JobRole = as.factor(df$JobRole)
+levels(df$JobRole) <- c(1,2,3,4,5,6,7,8,9)
+df$MaritalStatus=as.factor(df$MaritalStatus)
+levels(df$MaritalStatus) <- c(1,2,3)
+df$StockOptionLevel=as.factor(df$StockOptionLevel)
+df$WorkLifeBalance=as.factor(df$WorkLifeBalance)
+df$RelationshipSatisfaction=as.factor(df$RelationshipSatisfaction)
+df$JobSatisfaction=as.factor(df$JobSatisfaction)
+#Convert department to factors
+df$Department=as.factor(df$Department)
+levels(df$Department) <- c(1, 2, 3)
+#Convert education to factors
+df$Education=as.factor(df$Education)
+#Convert education field to factors
+df$EducationField=as.factor(df$EducationField)
+levels(df$EducationField) <- c(1, 2, 3, 4, 5, 6)
+#Convert environment satisfaction to factors
+df$EnvironmentSatisfaction=as.factor(df$EnvironmentSatisfaction)
+#Convert job satisfaction to factors
+df$JobSatisfaction=as.factor(df$JobSatisfaction)
+# Convert Business Travel to factors
+df$BusinessTravel= as.factor(df$BusinessTravel)
+levels(df$BusinessTravel) <- c(1, 2, 3)
+# Convert Female/Male to Binary (as factor)
+df$Gender=as.factor(df$Gender)
+levels(df$Gender)<- c(0,1)
+# Convert Yes/No to Binary (as factor)
+df$Attrition = as.factor(df$Attrition)
+levels(df$Attrition)<- c(0,1)
+df$OverTime=as.factor(df$OverTime)
+levels(df$OverTime) <-c(0,1)
+Attrition_NoRandNA <- df#clean dataset
+```
+
+### 3 Check missing values
+
+```{r, echo=False, warning=FALSE}
+# Count missing values in colums
+mis_col = colSums(is.na(df))
+mis_col
+# Count missing values in rows
+mis_row = rowSums(is.na(df))
+mis_row
+#MORE Options used later
+#countNA(df)
+#vis_miss(df)
+#gg_miss_upset(df) 
+#pMiss <- function(x){sum(is.na(x))/length(x)*100}
+#apply(df,2,pMiss)
+#md.pattern(df)
+#aggr_plot <- aggr(df, col=c('navyblue','red'), numbers=TRUE, sortVars=TRUE)
+
+```
+
+## 3.1 Generate not random NA MNAR
+
+```{r, echo=False}
+
+## Imput NA  NOT AT random MNAR
+
+# Select some columns:
+# 70% (66.66%) Numerical - 4 cols
+# 1-  Age
+# 13- HourlyRate
+# 21- NumCompaniesWorked
+# 32- YearsAtCompany
+
+# 30% (33.33%) Categorical - 2 cols
+# 12- Gender 0  female 
+# 22- OverTime 0 yes 
+
+# Select 2,6% miss data -> size= 200
+
+individuals_idx = sample(nrow(df), size=200)
+Attrition_NoRandNA[individuals_idx,c("Age", "HourlyRate","NumCompaniesWorked",
+                      "YearsAtCompany", "Gender", "OverTime")] = NA
+# NA's for each variable. Array of 1471 values
+x <- colSums(is.na(df) | df == "")
+sum(x)
+x
+# NA's for each row. Array of 1471 values
+y <- rowSums(is.na(df) | df == "")
+sum(y)
+vis_miss(Attrition_NoRandNA)
+gg_miss_upset(Attrition_NoRandNA) 
+pMiss <- function(x){sum(is.na(x))/length(x)*100}
+apply(Attrition_NoRandNA,2,pMiss)
+md.pattern(Attrition_NoRandNA)
+aggr_plot <- aggr(Attrition_NoRandNA, col=c('navyblue','red'), numbers=TRUE, sortVars=TRUE)
+### Select the columns with NA
+colsNA <- c("Age","HourlyRate", "NumCompaniesWorked", "YearsAtCompany","Gender","OverTime")
+## Set a data frame with no NA
+NONA <-na.omit(df[colsNA])
+identical(NONA, df[colsNA]) #comprobar que son identicos
+# Supuesto test de little
+mcar_test(Attrition_NoRandNA) #so it says data is MCAR lol
+```
+
+### 3.2 Generate random NA MCAR
+
+```{r, echo=False}
+#Generate MCAR
+Attrition_missRand <- prodNA(df, noNA = 0.026)# 2,6 % missing values
+countNA(Attrition_missRand)
+vis_miss(Attrition_missRand)
+gg_miss_upset(Attrition_missRand)
+vis_miss(Attrition_missRand)
+pMiss <- function(x){sum(is.na(x))/length(x)*100}
+apply(Attrition_missRand,2,pMiss)
+md.pattern(Attrition_missRand)
+aggr_plot <- aggr(Attrition_missRand, col=c('navyblue','red'), numbers=TRUE, sortVars=TRUE)
+
+```
+
+# 4. Missing values imputation
+
+## 4.1 Knn method for MNAR 
+
+```{r, echo=False}
+#DMwR2 library
+df_imp_knn1NR = knnImputation(Attrition_NoRandNA[colsNA], k=1)
+df_imp_knn2NR = knnImputation(Attrition_NoRandNA[colsNA], k=2)
+df_imp_knn3NR = knnImputation(Attrition_NoRandNA[colsNA], k=3)
+df_imp_knn4NR = knnImputation(Attrition_NoRandNA[colsNA], k=4)
+df_imp_knn5NR = knnImputation(Attrition_NoRandNA[colsNA], k=5)
+summary(df_imp_knn5NR)
+
+#VIM library
+Attrition_KNNNR <- kNN(Attrition_NoRandNA[,colsNA])
+histMiss(Attrition_KNNNR, delimiter="imp", selection="any")
+marginplot(Attrition_KNNNR[,c("Age","HourlyRate")], delimiter="imp",
+           alpha = 0.8, 
+           col = c("lightblue", "green", "black"))
+#plots
+plot(density(NONA$Age))
+lines(density(df_imp_knn1NR$Age),col = 2 )
+lines(density(df_imp_knn2NR$Age),col = 3 )
+lines(density(Attrition_KNNNR$Age),col = 4 )
+plot(density(NONA$NumCompaniesWorked))
+lines(density(df_imp_knn4NR$NumCompaniesWorked),col = 5 )
+lines(density(df_imp_knn5NR$NumCompaniesWorked),col = 6 )
+lines(density(Attrition_KNNNR$NumCompaniesWorked),col = 4 )
+```
+
+## 4.2 Knn method for MCAR
+
+```{r, echo=False}
+#DMwR2 library
+df_imp_knn1RandNA = knnImputation(Attrition_missRand[colsNA], k=1)
+df_imp_knn2RandNA = knnImputation(Attrition_missRand[colsNA], k=2)
+df_imp_knn3RandNA = knnImputation(Attrition_missRand[colsNA], k=3)
+df_imp_knn4RandNA = knnImputation(Attrition_missRand[colsNA], k=4)
+df_imp_knn5RandNA = knnImputation(Attrition_missRand[colsNA], k=5)
+summary(df_imp_knn5RandNA)
+
+#VIM library
+Attrition_KNNRNA <- kNN(Attrition_missRand[,colsNA])
+histMiss(Attrition_KNNRNA, delimiter="imp", selection="any")
+marginplot(Attrition_KNNRNA[,c("Age","HourlyRate")], delimiter="imp",
+           alpha = 0.8, 
+           col = c("lightblue", "green", "black"))
+#plots
+plot(density(NONA$Age))
+lines(density(df_imp_knn1RandNA$Age),col = 2 )
+lines(density(df_imp_knn2RandNA$Age),col = 3 )
+lines(density(Attrition_KNNRNA$Age),col = 4 )
+plot(density(NONA$NumCompaniesWorked))
+lines(density(df_imp_knn4RandNA$NumCompaniesWorked),col = 5 )
+lines(density(df_imp_knn5RandNA $NumCompaniesWorked),col = 6 )
+lines(density(Attrition_KNNRNA$NumCompaniesWorked),col = 4 )
+
+```
+
+# 4.3 Random Forest method for MNAR
+
+```{r, echo=False}
+## Miss Forest Imputation
+forest_impNR <- missForest(Attrition_NoRandNA, xtrue = df, verbose = TRUE, variablewise = TRUE)
+forest_impNR$ximp #valores imputados
+forest_impNR$OOBerror #Estimated OOB imputation error
+forest_impNR$error #True imputation error
+
+#NRSM es el error cuadrático medio normalizado y se usa para representar el error derivado 
+#de los valores continuos
+
+#PFC (Proporcion de clasificados falsamente) se usa para representar el error derivado de 
+#imputar las variables categoricas
+
+##Se puede observar como el mayor error de prediccion corresponde a las variables Age y Hourlyrate
+#sobre todo este ultimo
+Conf2x2 = matrix(c(1:4), nrow=2, byrow=FALSE)
+layout(Conf2x2)
+layout.show(4)
+
+
+plot(density(NONA$Age))
+lines(density(forest_impNR$ximp$Age),col = 2 )
+lines(density(Attrition_KNNNR$Age),col = 3 )
+plot(density(NONA$HourlyRate))
+lines(density(forest_impNR$ximp$HourlyRate),col = 2 )
+plot(density(NONA$NumCompaniesWorked))
+lines(density(forest_impNR$ximp$NumCompaniesWorked),col = 2 )
+plot(density(NONA$YearsAtCompany))
+lines(density(forest_impNR$ximp$YearsAtCompany),col = 2 )
+
+```
+
+# 4.4 Random Forest method for MCAR
+
+```{r, echo=False}
+forest_impRNA <- missForest(Attrition_missRand, xtrue = df, verbose = TRUE, variablewise = TRUE)
+forest_impRNA$ximp #valores imputados
+forest_impRNA$OOBerror #Estimated OOB imputation error
+forest_impRNA$error #True imputation 
+#PLOTS 
+Conf2x2 = matrix(c(1:4), nrow=2, byrow=FALSE)
+layout(Conf2x2)
+layout.show(4)
+
+
+plot(density(NONA$Age))
+lines(density(forest_impRNA$ximp$Age),col = 2 )
+lines(density(Attrition_KNNNR$Age),col = 3 )
+plot(density(NONA$HourlyRate))
+lines(density(forest_impRNA$ximp$HourlyRate),col = 2 )
+plot(density(NONA$NumCompaniesWorked))
+lines(density(forest_impRNA$ximp$NumCompaniesWorked),col = 2 )
+plot(density(NONA$YearsAtCompany))
+lines(density(forest_impRNA$ximp$YearsAtCompany),col = 2 )
+```
+
+# 4.5 mice method for MNAR
+
+```{r , echo=False}
+##MICE
+Attrition_mice <- mice(Attrition_NoRandNA, m=5)
+Attition_miceNR <- complete(Attrition_mice,5)
+
+Conf2x2 = matrix(c(1:4), nrow=2, byrow=FALSE)
+layout(Conf2x2)
+layout.show(4)
+
+plot(density(df$Age))
+lines(density(Attition_miceNR$Age),col = 2 )
+plot(density(df$HourlyRate))
+lines(density(Attition_miceNR$HourlyRate),col = 2 )
+plot(density(df$NumCompaniesWorked))
+lines(density(Attition_miceNR$NumCompaniesWorked),col = 2 )
+plot(density(df$YearsAtCompany))
+
+```
+
+# 4.6 mice method for MCAR
+
+```{r , echo=False}
+#MICE
+Attrition_mice2 <- mice(Attrition_missRand, m=5)
+Attition_miceMissR <- complete(Attrition_mice2,5)
+
+Conf2x2 = matrix(c(1:4), nrow=2, byrow=FALSE)
+layout(Conf2x2)
+layout.show(4)
+
+plot(density(df$Age))
+lines(density(Attition_miceMissR$Age),col = 2 )
+plot(density(df$HourlyRate))
+lines(density(Attition_miceMissR$HourlyRate),col = 2 )
+plot(density(df$NumCompaniesWorked))
+lines(density(Attition_miceMissR$NumCompaniesWorked),col = 2 )
+plot(density(df$YearsAtCompany))
+## comparar los dos mice
+plot(density(Attition_miceMissR$Age))
+lines(density(df$Age), col = 3)
+lines(density(Attition_miceNR$Age), col= 2)
+
+```
+
+# 5. Final Plots and Graphs
+
+```{r, echo=False}
+## FINAL PLOTS 
+## NUMERICAL
+#NO RANDOM
+ggplot() + 
+  geom_density(data = df, aes(x = NumCompaniesWorked), colour = "green")+
+  geom_density(data = df_imp_knn5NR, aes(x = NumCompaniesWorked), colour = "yellow")+ 
+  geom_density(data = forest_impNR$ximp,  aes(x = NumCompaniesWorked), colour = "red")+
+  geom_density(data = Attition_miceNR,  aes(x = NumCompaniesWorked), colour = "blue")
+# random
+ggplot() + 
+  geom_density(data = df, aes(x = Age), colour = "green")+
+  geom_density(data = df_imp_knn5RandNA, aes(x = Age), colour =  "yellow")+ 
+  geom_density(data = forest_impRNA$ximp,  aes(x = Age), colour = "red")+
+  geom_density(data = Attition_miceMissR,  aes(x = Age), colour = "blue")
+# COMPARATION OF DIFFERENT missing types
+#KNN
+ggplot() + 
+  geom_density(data = df, aes(x = Age), colour = "green")+
+  geom_density(data = df_imp_knn5RandNA, aes(x = Age), colour =  "yellow")+ 
+  geom_density(data = df_imp_knn5NR,  aes(x = Age), colour = "red")
+#RF
+ggplot() + 
+  geom_density(data = df, aes(x = Age), colour = "green")+
+  geom_density(data = forest_impRNA$ximp, aes(x = Age), colour =  "yellow")+ 
+  geom_density(data = forest_impNR$ximp,  aes(x = Age), colour = "red")
+#MICE
+ggplot() + 
+  geom_density(data = df, aes(x = Age), colour = "green")+
+  geom_density(data = Attition_miceMissR, aes(x = Age), colour =  "yellow")+ 
+  geom_density(data = Attition_miceNR,  aes(x = Age), colour = "red")
+## CATEGORICAL
+# NO RANDOM 
+col1 <- c(rep("Original",nrow(df)),rep("Knn",nrow(df_imp_knn5NR)),rep("RandomForest",nrow(forest_impNR$ximp)),rep("MICE",nrow(Attition_miceNR)))
+col2 <- c(df$Gender,df_imp_knn5NR$Gender,forest_impNR$ximp$Gender,Attition_miceNR$Gender)
+
+outcome_data <- cbind(col1, col2)
+
+flip_results <- data.frame(Imputation = factor(col1, levels = c("Original", "Knn", "RandomForest", "MICE")),
+                           Result = col2)
+results <- data.frame(table(flip_results))
+
+ggplot(data = results, aes(x = Result, y = Freq, fill = Imputation )) +
+  geom_bar(stat = "identity", position = position_dodge(), alpha = 0.75)  +
+  geom_text(aes(label = Freq), fontface = "bold", vjust = 1.5,
+            position = position_dodge(.9), size = 4) +
+  labs(x = "\n Gender", y = "Frequency\n", title = "\n Gender Comparison \n") +
+  theme(plot.title = element_text(hjust = 0.5), 
+        axis.title.x = element_text(face="bold", colour="red", size = 12),
+        axis.title.y = element_text(face="bold", colour="red", size = 12),
+        legend.title = element_text(face="bold", size = 10))
+
+
+#RANDOM
+col1 <- c(rep("Original",nrow(df)),rep("Knn",nrow(df_imp_knn5RandNA)),rep("RandomForest",nrow(forest_impRNA$ximp)),rep("MICE",nrow(Attition_miceMissR)))
+col2 <- c(df$Gender,df_imp_knn5RandNA$Gender,forest_impRNA$ximp$Gender,Attition_miceMissR$Gender)
+
+outcome_data <- cbind(col1, col2)
+
+flip_results <- data.frame(Imputation = factor(col1, levels = c("Original", "Knn", "RandomForest", "MICE")),
+                           Result = col2)
+results <- data.frame(table(flip_results))
+
+ggplot(data = results, aes(x = Result, y = Freq, fill = Imputation )) +
+  geom_bar(stat = "identity", position = position_dodge(), alpha = 0.75)  +
+  geom_text(aes(label = Freq), fontface = "bold", vjust = 1.5,
+            position = position_dodge(.9), size = 4) +
+  labs(x = "\n Gender", y = "Frequency\n", title = "\n Gender Comparison \n") +
+  theme(plot.title = element_text(hjust = 0.5), 
+        axis.title.x = element_text(face="bold", colour="red", size = 12),
+        axis.title.y = element_text(face="bold", colour="red", size = 12),
+        legend.title = element_text(face="bold", size = 10))
+```
