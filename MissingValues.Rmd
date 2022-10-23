@@ -5,20 +5,17 @@ date: "2022-10-14"
 ---
 
 ```{r, setup, include=FALSE, echo=TRUE}
-#knitr::opts_chunk$set(echo = TRUE)
-library(mice)
-library(ggcorrplot)
-library(naniar)
-library(ggplot2)
-library(finalfit) 
-library(visdat)
-library(dplyr)
-library(dlookr)
-library(DMwR2) #knn
-library(GGally)
-library(VIM)
-library(missForest)
-#mixtools, MVN, robustbase, hola
+
+requiredPackages <- c("mice", "ggcorrplot", "naniar", "ggplot2", "finalfit",
+                      "visdat", "dplyr", "dlookr", "DMwR2", "GGally", "VIM", "missForest")
+packages.check <- lapply(requiredPackages, FUN = function(x) {
+  if(!require(x, character.only = TRUE)) {
+    install.packages(x, dependencies = TRUE)
+    library(x, character.only = TRUE)
+   }
+})
+
+
 ```
 
 # Content Table
@@ -33,32 +30,37 @@ library(missForest)
 
 3.  Check missing values
 
-  3.1 Generate not random NA MNAR
+3.1 Generate not random NA MNAR
 
-  3.2 Generate random NA MCAR
+3.2 Generate random NA MCAR
 
-4. Missing values imputation
+4.  Missing values imputation
 
-    4.1 Knn method for MNAR 
+    4.1 Knn method for MNAR
 
     4.2 Knn method for MCAR
-    
+
     4.3 Random Forest method for MNAR
-    
+
     4.4 Random Forest method for MCAR
-      
+
     4.5 mice method for MNAR
-    
+
     4.6 mice method for MCAR
-    
-5. Final Plots and Graphs
+
+5.  Final Plots and Graphs
 
 # 1. Introduction
 
 ## 1.1 Load Data
 
 ```{r, echo=TRUE}
-df <- read.csv("C:/Users/David/Downloads/WA_Fn-UseC_-HR-Employee-Attrition.csv")
+
+PROJECT_PATH="~/Documents/UPC/1Q/MultivariateAnalysis_MVVA/Labs/MultivariantAnalysis_IBMDataset"
+
+setwd(PROJECT_PATH)
+df <- read.csv("./Data/IBM_Employees.csv")
+
 ```
 
 ## 1.2 Dataframe basic information
@@ -232,7 +234,7 @@ aggr_plot <- aggr(Attrition_missRand, col=c('navyblue','red'), numbers=TRUE, sor
 
 # 4. Missing values imputation
 
-## 4.1 Knn method for MNAR 
+## 4.1 Knn method for MNAR
 
 ```{r, echo=False}
 #DMwR2 library

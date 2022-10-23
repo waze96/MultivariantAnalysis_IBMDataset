@@ -1,0 +1,211 @@
+---
+title: "Missing values"
+output: pdf_document
+date: "2022-10-14"
+---
+
+```{r, setup, include=FALSE, echo=TRUE}
+#knitr::opts_chunk$set(echo = TRUE)
+library(mice)
+library(ggcorrplot)
+library(naniar)
+library(ggplot2)
+library(finalfit) 
+library(visdat)
+library(dplyr)
+library(dlookr)
+library(DMwR2) #knn
+library(GGally)
+library(VIM)
+library(missForest)
+library(FactoMineR)
+library(shiny)
+library(FactoInvestigate)
+library(Factoshiny)
+library(factoextra)
+#mixtools, MVN, robustbase
+```
+
+# Content Table
+
+1.  Introduction
+
+    1.1 Load Data
+
+    1.2 DataFrame Basic Information
+
+2.  Formatting issues
+
+3.  MFA
+
+    3.1 Summary of outputs / Eigenvalues
+    3.2 1st/2nd dimension - Attrition
+    3.3 3rd/4th dimension - JobRole
+
+# 1. Introduction
+
+## 1.1 Load Data
+
+```{r, echo=TRUE}
+df <- read.csv("C:/Users/Tony Vitas/Downloads/WA_Fn-UseC_-HR-Employee-Attrition.csv")
+```
+
+## 1.2 Dataframe basic information
+
+Show a summary of the current dataframe.
+
+```{r, echo=TRUE}
+explanatory = c("Age",
+                "DailyRate",
+                "DistanceFromHome",
+                "HourlyRate",
+                "MonthlyIncome",
+                "MonthlyRate",
+                "NumCompaniesWorked",
+                "PercentSalaryHike",
+                "TotalWorkingYears",
+                "TrainingTimesLastYear",
+                "YearsAtCompany",
+                "YearsInCurrentRole",
+                "YearsSinceLastPromotion",
+                "YearsWithCurrManager",
+                "Gender",
+                "OverTime",
+                "BusinessTravel",
+                "Department",
+                "Education",
+                "EducationField",
+                "EnvironmentSatisfaction",
+                "JobInvolvement",
+                "JobLevel",
+                "PerformanceRating",
+                "JobRole",
+                "JobSatisfaction",
+                "MaritalStatus",
+                "RelationshipSatisfaction",
+                "StockOptionLevel",
+                "WorkLifeBalance")
+dependent = "Attrition"
+str(df)
+head(df)
+df%>% ff_glimpse (dependent, explanatory)# best
+vis_dat(df)
+```
+
+# 2. Formatting issues
+
+-   Check that Categorical variables are correctly processed by R, so all interpreted as factors.
+-   Set short-meaningful level names for the categorical variables.
+-   Reduce number of levels if has sense.
+
+```{r, echo=False}
+# Remove useless attributes
+df <- subset(df, select = -c(EmployeeCount, StandardHours,Over18, EmployeeNumber))
+#Transform to factor
+df$JobInvolvement=as.factor(df$JobInvolvement)
+df$JobLevel=as.factor(df$JobLevel)
+df$PerformanceRating=as.factor(df$PerformanceRating)
+df$JobRole = as.factor(df$JobRole)
+levels(df$JobRole) <- c(1,2,3,4,5,6,7,8,9)
+df$MaritalStatus=as.factor(df$MaritalStatus)
+levels(df$MaritalStatus) <- c(1,2,3)
+df$StockOptionLevel=as.factor(df$StockOptionLevel)
+df$WorkLifeBalance=as.factor(df$WorkLifeBalance)
+df$RelationshipSatisfaction=as.factor(df$RelationshipSatisfaction)
+df$JobSatisfaction=as.factor(df$JobSatisfaction)
+#Convert department to factors
+df$Department=as.factor(df$Department)
+levels(df$Department) <- c(1, 2, 3)
+#Convert education to factors
+df$Education=as.factor(df$Education)
+#Convert education field to factors
+df$EducationField=as.factor(df$EducationField)
+levels(df$EducationField) <- c(1, 2, 3, 4, 5, 6)
+#Convert environment satisfaction to factors
+df$EnvironmentSatisfaction=as.factor(df$EnvironmentSatisfaction)
+#Convert job satisfaction to factors
+df$JobSatisfaction=as.factor(df$JobSatisfaction)
+# Convert Business Travel to factors
+df$BusinessTravel= as.factor(df$BusinessTravel)
+levels(df$BusinessTravel) <- c(1, 2, 3)
+# Convert Female/Male to Binary (as factor)
+df$Gender=as.factor(df$Gender)
+levels(df$Gender)<- c(0,1)
+# Convert Yes/No to Binary (as factor)
+df$Attrition = as.factor(df$Attrition)
+levels(df$Attrition)<- c(0,1)
+df$OverTime=as.factor(df$OverTime)
+levels(df$OverTime) <-c(0,1)
+Attrition_NoRandNA <- df#clean dataset
+```
+
+# 3. MFA
+
+# 3.1 Eigenvalues // Variances
+newDF <- Attrition_NoRandNA[,c("Age","NumCompaniesWorked","TotalWorkingYears","DistanceFromHome","YearsInCurrentRole","YearsAtCompany","MonthlyIncome","PercentSalaryHike","Gender","MaritalStatus","Attrition","OverTime","StockOptionLevel","Department","JobRole","JobLevel","BusinessTravel","JobSatisfaction","EnvironmentSatisfaction","RelationshipSatisfaction","WorkLifeBalance")]
+res.MFA<-MFA(newDF,group=c(1,2,3,2,2,1,1,1,4,4), type=c("s","s","s","s","n","n","n","n","n","n"),name.group=c("GD_num","BK_num","JW_num","JE_num","GD_cat","Attrition","JW_cat","JE_cat","JC_cat","PSS_cat"),num.group.sup=c(1,5,10),graph=FALSE)
+
+MFA.eig <- get_eigenvalue(res.MFA)
+head(MFA.eig)
+
+fviz_screeplot(res.MFA)
+
+
+# 3.2 Graph of variables
+# 3.2.1 Groups of variables
+MFA.group <- get_mfa_var(res.MFA, "group")
+
+head(MFA.group$coord) #Coordinate of groups
+head(MFA.group$cos2) #Quality of representation on the factore map
+head(MFA.group$contrib) #Contributions to the dimensions
+
+fviz_mfa_var(res.MFA, "group") #Variables group plot
+
+fviz_contrib(res.MFA, "group", axes=1) #Group contribution to Dim1
+
+fviz_contrib(res.MFA, "group", axes=2) #Group contribution to Dim2
+
+# 3.2.2 Quantitative variables
+
+MFA.quanti <- get_mfa_var(res.MFA, "quanti.var")
+
+head(MFA.quanti$coord) #Coordinate of groups
+head(MFA.quanti$cos2) #Quality of representation on the factore map
+head(MFA.quanti$contrib) #Contributions to the dimensions
+
+fviz_mfa_var(res.MFA, "quanti.var", palette = "jco", color.var.sup = "violet", repel = TRUE, geom = c("point","text"), legend = "bottom") #Correlation circle for quanti var Dim1 and 2
+
+fviz_mfa_var(res.MFA, "quanti.var", palette = "jco", color.var.sup = "violet", repel = TRUE, geom = c("point","text"), legend = "bottom", axes = c(3,4)) #Correlation circle for quanti var Dim3 and 4
+
+fviz_contrib(res.MFA, choice = "quanti.var", axes=1, top = 10, palette = "jco") #Contribution to Dim1
+
+fviz_contrib(res.MFA, choice = "quanti.var", axes=2, top = 10, palette = "jco") #Contribution to Dim2
+
+fviz_contrib(res.MFA, choice = "quanti.var", axes=3, top = 10, palette = "jco") #Contribution to Dim3
+
+fviz_contrib(res.MFA, choice = "quanti.var", axes=4, top = 10, palette = "jco") #Contribution to Dim4
+
+fviz_mfa_var(res.MFA, "quanti.var", col.var = "contrib", gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"), geom = c("point", "text"), legend = "bottom")
+
+
+# 3.2.3 Individuals
+
+MFA.ind <- get_mfa_ind(res.MFA)
+
+## 1st/2nd Dim
+fviz_mfa_ind(res.MFA, habillage = "Attrition", palette = c("#00AFBB","#E7B800"), addEllipses = TRUE, repel = TRUE)
+
+fviz_mfa_ind(res.MFA, habillage = "OverTime", palette = c("#00AFBB","#E7B800"), addEllipses = TRUE, repel = TRUE)
+
+fviz_ellipses(res.MFA, c("Attrition","OverTime"), repel = TRUE, ellipse.type = "t")
+
+## 3rd/4th Dim
+plot.MFA(res.MFA, choix="ind",axes=c(3,4),lab.par=FALSE,select='contrib  500',habillage='JobRole',title="Individual factor map",cex=0.9,cex.main=0.9,cex.axis=0.9)
+
+
+# 3.2.4 Partial Axes
+plot.MFA(res.MFA, choix="axes",ncp=1,habillage='group',cex=1.05,cex.main=1.05,cex.axis=1.05)
+
+
+
+
