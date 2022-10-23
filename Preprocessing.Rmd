@@ -65,7 +65,7 @@ plotFreq <- function(df, feature, xlabel) {
   plot<-ggplot(df, aes(x=feature)) +
         geom_bar(aes(y =(..count..)/sum(..count..))) +
         geom_text(aes( label = scales::percent((..count..)/sum(..count..)),
-                   y= ((..count..)/sum(..count..)) ), stat= "count", vjust = 1.25, color="#ffffff", size=3) +
+                   y= ((..count..)/sum(..count..)) ), stat= "count", vjust = -0.25, color="#000000", size=3) +
         labs(x=xlabel, y='Percent')+
         scale_y_continuous(labels = scales::percent)
   return(plot)
@@ -440,8 +440,11 @@ figure_hist_2
 ```{r, echo=False}
 
 mdi = mahalanobis(nonFactorDf,center=apply(nonFactorDf,2,mean),cov=var(nonFactorDf))
-plot(density(mdi), main="Density curve of Mahalanobis distance")
+
+# Highlight the tails of the distributions
 cutoff <- qchisq(p = 0.99 , ncol(nonFactorDf))
+plot(density(mdi), main="Density curve of Mahalanobis distance")
+abline(v=cutoff, col="red", lwd=1, lty=2)
 
 # Create new DataFrame and set a new categorical variable to identify which are multivariate outliers or not
 
