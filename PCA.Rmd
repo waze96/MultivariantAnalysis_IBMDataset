@@ -39,11 +39,10 @@ df1 <- subset(df_PCA, select = -c(HourlyRate,DailyRate,MonthlyRate))
 
 ```{r, echo=TRUE}
 
-pca <- prcomp(df_PCA, scale = TRUE)
+pca <- prcomp(df1, scale = TRUE)
 pca$rotation
 
-fviz_eig(pca, addlabels=TRUE, hjust = -0.3) +
-  ylim(0, 40)
+fviz_eig(pca, addlabels=TRUE, hjust = -0.3) 
 
 prop_varianza <- pca$sdev^2 / sum(pca$sdev^2)
 prop_varianza
@@ -54,7 +53,66 @@ prop_varianza_acum
 
 # Les 4 primeres 59.18 % de la varianxa
 
+
+
+
+
+
+
+df$JobLevel
+
 ```
+
+### 1.1.2 Choose dimensions
+
+```{r, echo=FALSE}
+
+decorrelate_dataframe <- function(df){
+    
+  df_aux <- data.frame(df) 
+  
+  for (column in colnames(df))
+  {
+    df_aux[,column] <- sample(df[,column])
+  }
+  return(df_aux)
+}
+
+
+
+#Calculte the original variance
+pca <- prcomp(df1, scale = TRUE)
+original_var <- pca$sdev^2 / sum(pca$sdev^2)
+
+
+
+num_permutations = 10
+df_variance = data.frame(matrix(nrow = num_permutations, ncol = length(colnames(df1)))) 
+
+for (i in c(1:num_permutations))
+{
+  df_aux = decorrelate_dataframe(df1)
+  pca_aux <- prcomp(df_aux, scale = TRUE)
+  df_variance[i,] <- pca_aux$sdev^2 / sum(pca_aux$sdev^2)
+}
+
+
+nrow(df_variance[df_variance$X1 > original_var[1],])/ num_permutations
+nrow(df_variance[df_variance$X2 > original_var[2],])/ num_permutations
+nrow(df_variance[df_variance$X3 > original_var[3],])/ num_permutations
+nrow(df_variance[df_variance$X4 > original_var[4],])/ num_permutations
+nrow(df_variance[df_variance$X5 > original_var[5],])/ num_permutations
+nrow(df_variance[df_variance$X6 > original_var[6],])/ num_permutations
+nrow(df_variance[df_variance$X7 > original_var[7],])/ num_permutations
+nrow(df_variance[df_variance$X8 > original_var[8],])/ num_permutations
+nrow(df_variance[df_variance$X9 > original_var[9],])/ num_permutations
+nrow(df_variance[df_variance$X10 > original_var[10],])/ num_permutations
+nrow(df_variance[df_variance$X11 > original_var[11],])/ num_permutations
+nrow(df_variance[df_variance$X12 > original_var[12],])/ num_permutations
+
+
+```
+
 
 ### 1.1.2 PCA1 vs PCA2 plots
 
