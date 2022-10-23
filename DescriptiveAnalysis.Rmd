@@ -127,6 +127,7 @@ plotFreq(df, df$JobSatisfaction, 'JobSatisfaction')
 plotFreq(df, df$RelationshipSatisfaction, 'RelationshipSatisfaction')
 plotFreq(df, df$StockOptionLevel, 'StockOptionLevel')
 plotFreq(df, df$WorkLifeBalance, 'WorkLifeBalance')
+plotFreq(df, df$DistanceFromHome, 'DistanceFromHome')
 
 ```
 
@@ -134,12 +135,10 @@ plotFreq(df, df$WorkLifeBalance, 'WorkLifeBalance')
 
 ```{r, echo=False}
 
-nonFactorDf <- df[!sapply(df, is.factor)]
-
 i = 1
-data_names <- attributes(nonFactorDf)$names
+data_names <- attributes(numericalDf)$names
 for (variable in nonFactorDf) {
-  hist(variable, main = data_names[i])
+  plot(plotFreq(df, variable, data_names[i]))
   i = i+1
 }
 
@@ -155,8 +154,6 @@ quantile(df$AverageYearsCompany, prob=c(.1,.2,.3,.4,.5,.6,.7,.8,.9))
 # 3. Bivariate analysis
 
 ```{r, echo=False}
-
-nonFactorDf <- df[!sapply(df, is.factor)]
 
 #RateVariables 
 
@@ -178,6 +175,8 @@ ggplot(df, aes(x = 1:nrow(df), y = DailyRate / HourlyRate)) +
 ## 3.1 Correlation study
 
 ```{r}
+
+nonFactorDf <- df[!sapply(df, is.factor)]
 
 i=1
 for (var1 in nonFactorDf[-length(nonFactorDf)]) {
@@ -229,6 +228,8 @@ ggplot(df, aes(x=DailyRate, color=Attrition)) +
 
 ggplot(df, aes(x=DistanceFromHome, color=Attrition)) +
      geom_density()
+ggplot(df, aes(x=DistanceFromHome, y=Attrition)) +
+  geom_boxplot()
 
 ggplot(df, aes(x=TotalWorkingYears, color=Attrition)) +
      geom_density()
@@ -262,13 +263,13 @@ ggplot(df, aes(x=MonthlyIncome, color=Attrition)) +
 # for all combination between two categorical variable, we make a chisq.test (independance test for categorical var) and we keep variable than are dependant (p-value of the chisq test < 0.05 => we are sure than there are dependant with > 95%)
 
 i=1
-for (var1 in factorDf[-length(factorDf)]) {
-  factorDf3 <- factorDf[-c(1:i)]
+for (var1 in categoricalDf[-length(categoricalDf)]) {
+  factorDf3 <- categoricalDf[-c(1:i)]
   j=1
   for(var2 in factorDf3) {
     chisq_test <- chisq.test(var1, var2)
     if(chisq_test$p.value < 0.05) {
-      print(paste0(attributes(factorDf[i])$names, " | ", attributes(factorDf3[j])$names, " | p-value ", chisq_test$p.value))
+      print(paste0(attributes(categoricalDf[i])$names, " | ", attributes(factorDf3[j])$names, " | p-value ", chisq_test$p.value))
       print(table(var1,var2))
     }
     j=j+1
@@ -276,16 +277,16 @@ for (var1 in factorDf[-length(factorDf)]) {
   i=i+1
 }
 
-ggplot(data = factorDf) +
+ggplot(data = categoricalDf) +
   geom_bar(aes(x = factor(OverTime), fill = factor(JobSatisfaction)), position = "fill")
 
-ggplot(data = factorDf) +
+ggplot(data = categoricalDf) +
   geom_bar(aes(x = factor(JobRole), fill = factor(Gender)), position = "fill")
 
-ggplot(data = factorDf) +
+ggplot(data = categoricalDf) +
   geom_bar(aes(x = factor(JobLevel), fill = factor(StockOptionLevel)), position = "fill")
 
-ggplot(data = factorDf) +
+ggplot(data = categoricalDf) +
   geom_bar(aes(x = factor(MaritalStatus), fill = factor(StockOptionLevel)), position = "fill")
 ```
 
@@ -407,24 +408,29 @@ ggplot(df, aes(x=YearsWithCurrManager, y=Attrition)) +
 ggplot(df, aes(x=MonthlyIncome, y=JobLevel, fill=Gender)) +
   geom_boxplot()
 
-ggplot(df, aes(x=PercentSalaryHike, y=PerformanceRating, fill=Gender)) +
+ggplot(df, aes(x=PercentSalaryHike, y=PerformanceRating, fill=Attrition)) +
   geom_boxplot()
 
-ggplot(df, aes(x=MonthlyIncome, y=EducationField, fill=Gender)) +
+ggplot(df, aes(x=MonthlyIncome, y=StockOptionLevel, fill=Gender)) +
   geom_boxplot()
 
-ggplot(df, aes(x=MonthlyIncome, y=EducationField, fill=MaritalStatus)) +
+ggplot(df, aes(x=MonthlyIncome, y=StockOptionLevel, fill=MaritalStatus)) +
   geom_boxplot()
 
-ggplot(df, aes(x=MonthlyIncome, y=Attrition, fill=Gender)) +
+ggplot(df, aes(x=MonthlyIncome, y=JobRole, fill=Gender)) +
   geom_boxplot()
 
 
 ggplot(df, aes(StockOptionLevel, ..count..)) + geom_bar(aes(fill = MaritalStatus), position = "dodge")
 
-ggplot(df, aes(StockOptionLevel, ..count..)) + geom_bar(aes(fill = Attrition), position = "dodge")
+ggplot(df, aes(x=JobLevel)) +
+        geom_bar(aes(fill= Attrition, y =(..count..)/sum(..count..))) +
+        geom_text(aes( label = scales::percent((..count..)/sum(..count..)),
+                   y= ((..count..)/sum(..count..)) ), stat= "count", vjust = -0.25, color="#000000", size=3) +
+        labs(x="a", y='Percent')+
+        scale_y_continuous(labels = scales::percent)
 
-ggplot(df, aes(JobRole, ..count..)) + geom_bar(aes(fill = Gender), position = "dodge")
+ggplot(df, aes(JobRole, ..percent..)) + geom_bar(aes(fill = Gender), position = "dodge")
 
 summary(df$Attrition)
 summary(df$Attrition[df$MonthlyIncome<4000])

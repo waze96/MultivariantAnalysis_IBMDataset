@@ -1,0 +1,252 @@
+---
+title: "MCA"
+output:
+  word_document: default
+  html_document: default
+date: "2022-10-16"
+---
+
+
+```{r, setup, include=FALSE, echo=TRUE}
+#knitr::opts_chunk$set(echo = TRUE)
+library(ggcorrplot)
+library(ggplot2)
+library(dplyr)
+library(dlookr)
+library(Factoshiny)
+library(FactoMineR)
+library(factoextra)
+```
+
+## 1.1 Load Data
+
+```{r, echo=TRUE}
+df <- read.csv("C:/Users/David/Downloads/WA_Fn-UseC_-HR-Employee-Attrition.csv")
+
+#identical(Attrition, HELLOS)
+
+# no va todavia CleanAttrition <- read.csv("C:/Users/David/Desktop/Máster/MVA/Project/CleanAttrition.csv")
+```
+# 2. Formatting issues
+
+-   Check that Categorical variables are correctly processed by R, so all interpreted as factors.
+-   Set short-meaningful level names for the categorical variables.
+-   Reduce number of levels if has sense.
+
+```{r, echo=False}
+# Remove useless attributes
+df <- subset(df, select = -c(EmployeeCount, StandardHours,Over18, EmployeeNumber))
+#Transform to factor
+df$Attrition=as.factor(df$Attrition)
+
+df$BusinessTravel=as.factor(df$BusinessTravel)
+
+df$Department=as.factor(df$Department)
+
+df$Education=as.factor(df$Education)
+levels(df$Education) <- c('Below College', 'College', 'Bachelor', 'Master', 'Doctor')
+
+df$EducationField=as.factor(df$EducationField)
+
+df$EnvironmentSatisfaction=as.factor(df$EnvironmentSatisfaction)
+levels(df$EnvironmentSatisfaction) <- c('Low', 'Medium', 'High', 'Very High')
+
+df$Gender=as.factor(df$Gender)
+
+df$JobInvolvement=as.factor(df$JobInvolvement)
+levels(df$JobInvolvement) <- c('Low', 'Medium', 'High', 'Very High')
+
+df$JobLevel=as.factor(df$JobLevel)
+levels(df$JobLevel) <- c('Intern', 'Junior', 'Senior', 'Manager', 'Director')
+
+# Reduce number of levels from 9 to 7
+df$JobRole=as.factor(df$JobRole)
+levels(df$JobRole) <- c("Representatives", "H.R.", "Lab. Tech.", "Manager", "Directors", "Directors", "Research Sci.", "Sales Executive", "Representatives")
+
+df$JobSatisfaction=as.factor(df$JobSatisfaction)
+levels(df$JobSatisfaction) <- c('Low', 'Medium', 'High', 'Very High')
+
+df$MaritalStatus=as.factor(df$MaritalStatus)
+
+df$OverTime=as.factor(df$OverTime)
+
+df$PerformanceRating=factor(df$PerformanceRating, levels = c(1, 2, 3, 4))
+levels(df$PerformanceRating) <- c('Low', 'Good', 'Excellent', 'Outstanding')
+
+df$RelationshipSatisfaction=as.factor(df$RelationshipSatisfaction)
+levels(df$RelationshipSatisfaction) <- c('Low', 'Medium', 'High', 'Very High')
+
+df$StockOptionLevel=as.factor(df$StockOptionLevel)
+levels(df$StockOptionLevel) <- c('No', 'Few', 'Medium', 'High')
+
+df$WorkLifeBalance=as.factor(df$WorkLifeBalance)
+levels(df$WorkLifeBalance) <- c('Bad', 'Good', 'Better', 'Best')
+
+Attrition <- df#clean dataset
+#colnames(Attrition)
+
+```
+### 3 MCA with all variables
+Active individuals (rows 1:1470): Individuals that are used in the multiple correspondence analysis.
+Active variables (all categorical data) : Variables that are used in the MCA.
+Supplementary variables: They don’t participate to the MCA. The coordinates of these variables will be predicted.
+Supplementary quantitative variables (quanti.sup): all 
+Supplementary qualitative variables (quali.sup:none
+The null hypothesis of the Chi-Square test is that no relationship exists on the categorical variables in the population; they are independent.
+```{r, echo=False}
+#Split cat and num variables
+cat_variables <- sapply(Attrition, is.factor)
+num_variables <- sapply(Attrition, is.numeric)
+cat.df <- Attrition[, cat_variables]
+num.df <- Attrition[, num_variables]
+#num of variables p = 17 and num of categories/ modalities k = 65 max inertia per dimension 35%, the mean intertia is 1/p = 0.0588 till dim 22
+# Apply MCA function
+res.mca <-MCA(cat.df, ncp = 8, graph = FALSE)
+
+
+```
+### 3.1 Visualization and Interpretation
+We can see from the plots above that for both dimensions, the variables with relevant contribution are JobLevel, EducationField, Department and JobRole. Their influnce is higher for the first dimension. There seems to be a direct relation with d1 for the categories related to Human resources and also but not as much with the research ones. There is also and inverse relation with the sales related categories for D1.
+```{r}
+#get_eigenvalue(res.mca): Extract the eigenvalues/variances retained by each dimension (axis)
+eigen.val <- get_eigenvalue(res.mca)
+eigen.val
+#fviz_eig(res.mca): Visualize the eigenvalues/variances
+fviz_eig(res.mca, addlabels = TRUE,main = "MCA-Scree plot", ylim =c(0,6), ncp = 15)
+#fviz_mca_biplot(res.mca): Make a biplot of rows and columns.
+fviz_mca_biplot(res.mca,ggtheme = theme_minimal())
+#get_mca_ind(res.mca), get_mca_var(res.mca): Extract the results for individuals and variables, respectively.
+var <-get_mca_var(res.mca)
+# Coordinates
+head(var$coord)
+# Cos2: quality on the factore map
+head(var$cos2)
+# Contributions to the principal components
+head(var$contrib)
+#fviz_mca_ind(res.mca), fviz_mca_var(res.mca): Visualize the results for individuals and variables, respectively.
+fviz_mca_var(res.mca, choice = "mca.cor", 
+            repel = TRUE, # Avoid text overlapping (slow)
+            ggtheme = theme_minimal())
+#this for only variable categories
+fviz_mca_var(res.mca, axes = c(3,4), choice = "var.cat", 
+             repel = TRUE, select.var = list(  contrib = 10),
+            ggtheme = theme_minimal())
+```
+
+
+
+```{r}
+# Cos2 of variable categories on Dim.1 and Dim.2
+fviz_cos2(res.mca, choice = "var", axes = 1:2, top = 10)
+# Color by contrin values: quality on the factor map
+fviz_mca_var(res.mca, col.var = "contrib",   
+             select.var = list(contrib = 15),
+              gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"), 
+             repel = TRUE, # Avoid text overlapping
+             ggtheme = theme_minimal())
+# Contributions of rows to dimension 1
+fviz_contrib(res.mca, choice = "var", axes = 1, top = 15)
+# Contributions of rows to dimension 2
+fviz_contrib(res.mca, choice = "var", axes = 2, top = 15)
+# Contributions of rows to dimension 3
+fviz_contrib(res.mca, choice = "var", axes = 3, top = 15)
+# Contributions of rows to dimension 4
+fviz_contrib(res.mca, choice = "var", axes = 4, top = 15)
+fviz_mca_var(res.mca, axes = c(3,4), col.var = "contrib",   
+             select.var = list(contrib = 15),
+              gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"), 
+             
+             
+             repel = TRUE, # Avoid text overlapping
+             ggtheme = theme_minimal())
+#Dimension description
+res.desc <- dimdesc(res.mca, axes = c(1,2,3,4,5,6,7,8))
+# Description of dimension 1res.desc[[1]]
+
+# Description of dimension 2res.desc[[2]]
+
+# Description of dimension 3res.desc[[3]]
+
+# Description of dimension 4res.desc[[4]]
+
+res.desc$`Dim 1`$quali
+res.desc$`Dim 2`$quali
+res.desc$`Dim 3`$quali
+res.desc$`Dim 4`$quali
+
+```
+
+```{r}
+fviz_mca_ind(res.mca, label="none",axes = c(3,4), habillage=1,addEllipses=TRUE, ellipse.level=0.95)#Attritio
+fviz_mca_ind(res.MCA, label="none",axes = c(1,2), habillage=5,addEllipses=TRUE, ellipse.level=0.95)#dep
+fviz_mca_ind(res.MCA, label="none",axes = c(1,2), habillage=13,addEllipses=TRUE, ellipse.level=0.95)#JL
+fviz_mca_ind(res.MCA, label="none",axes = c(1,2), habillage=14,addEllipses=TRUE, ellipse.level=0.95)#JR
+fviz_mca_ind(res.MCA, label="none",axes = c(2,4), habillage=13,addEllipses=TRUE, ellipse.level=0.95)
+fviz_mca_ind(res.MCA, label="none",axes = c(3,4), habillage=24,addEllipses=TRUE, ellipse.level=0.95)#stock
+fviz_mca_ind(res.MCA, label="none",axes = c(8,3), habillage=2,addEllipses=TRUE, ellipse.level=0.95)
+fviz_mca_ind(res.MCA, label="none",axes = c(3,5), habillage=2,addEllipses=TRUE, ellipse.level=0.95)
+fviz_mca_ind(res.MCA, label="none",axes = c(3,4), habillage=16,addEllipses=TRUE, ellipse.level=0.95)#marital
+fviz_mca_ind(res.MCA2, label="none",axes = c(6,2), habillage=27,addEllipses=TRUE, ellipse.level=0.95)#balance
+fviz_mca_ind(res.MCA2, label="none",axes = c(3,2), habillage=12,addEllipses=TRUE, ellipse.level=0.95)#involvement
+fviz_mca_ind(res.MCA2, label="none",axes = c(1,2), habillage=20,addEllipses=TRUE, ellipse.level=0.95)#overtime  
+fviz_mca_ind(res.MCA2, label="none",axes = c(1,2), habillage=3,addEllipses=TRUE, ellipse.level=0.95)#travel 
+
+```
+### 4 Specific MCA
+Active individuals (rows 1:1470): Individuals that are used in the multiple correspondence analysis.
+Active variables (all categories) : Variables that are used in the MCA.
+Supplementary variables: They don’t participate to the MCA. The coordinates of these variables will be predicted.
+Supplementary quantitative variables (quanti.sup): All quantitative variables.
+Supplementary qualitative variables (quali.sup: Columns 3 and 4 corresponding to the columns Sick and Sex, respectively. This factor variables will be used to color individuals by groups.
+The null hypothesis of the Chi-Square test is that no relationship exists on the categorical variables in the population; they are independent.
+```{r}
+# DEEP ANALYSIS # ATTRITION SEPARADO YES NO CON CATEGORIAS CON SENTIDO
+#division por diferentes departamentos d1 y d2 en este caso estan relacionados con esto 
+res.MCA<-MCA(Attrition,quanti.sup=c(1,4,6,11,17,18,19,21,25,26,28,29,30,31),graph=FALSE, ncp = 8)
+plot.MCA(res.MCA,selectMod= 'contrib  17 ',habillage=5,label =c('var'))#DEP
+plot.MCA(res.MCA,selectMod= 'contrib  17 ',habillage=8,label =c('var'))#EDUCATION FIELD
+plot.MCA(res.MCA,selectMod= 'contrib  17 ',habillage=14,label =c('var'))#JOB ROLE
+#DIM 2 4 JOB LEVEL
+plotellipses(res.MCA,keepvar=13,axes=c(2,4),label ='quali')
+#DIM 3 Y 2 DEPARTMENS SE VE BONITO
+plotellipses(res.MCA,keepvar=5,axes=c(3,2),label ='quali')
+# DIMENSIONES 3 Y 4 RELACIONADAS CON 
+plot.MCA(res.MCA,axes=c(3,4),selectMod= 'contrib  17 ',habillage=24,label =c('var'))#STOCK
+plot.MCA(res.MCA,axes=c(3,4),selectMod= 'contrib  17 ',habillage=16,label =c('var'))#MARITAL
+plot.MCA(res.MCA,axes=c(3,4),selectMod= 'contrib  17 ',habillage=14,label =c('var'))#JOB ROLE
+plot.MCA(res.MCA,axes=c(3,4),selectMod= 'contrib  17 ',habillage=13,label =c('var'))#JOB LVL CORRELATED WITH PREVIO
+plot.MCA(res.MCA,axes=c(3,4),selectMod= 'contrib  17 ',habillage=2,label =c('var'))# ATTRITION!!
+#DIMENSIONES 5 Y 7
+plot.MCA(res.MCA,axes=c(5,7),selectMod= 'contrib  11 ',habillage=20,label ='none')#OVERTIME
+#DIMENSIONES 6 Y 8 GENDER
+plot.MCA(res.MCA,axes=c(6,8),selectMod= 'contrib  11 ',habillage=10,label =c('var')) # POCA INERTIA
+#DIMENSITONES 8 Y 7 JOBINVO
+plotellipses(res.MCA,keepvar=12,axes=c(7,8),label ='quali')
+#STOCKOPTION 7 Y 3/4
+plotellipses(res.MCA,keepvar=24,axes=c(3,7),label ='quali')
+plot.MCA(res.MCA,axes=c(7,4),selectMod= 'contrib  11 ',habillage=24,label =c('var'))
+plot.MCA(res.MCA,axes=c(7,3),selectMod= 'contrib  11 ',habillage=24,label =c('var'))
+
+#ATTRITION PLOTS
+plot.MCA(res.MCA,axes=c(8,3),selectMod= 'contrib  11 ',habillage=2,label =c('var'))
+plot.MCA(res.MCA,axes=c(3,4),selectMod= 'contrib  17 ',habillage=2,label =c('var'))
+plot.MCA(res.MCA,axes=c(7,3),selectMod= 'contrib  11 ',habillage=2,label =c('var'))
+plot.MCA(res.MCA,axes=c(5,3),selectMod= 'contrib  11 ',habillage=2,label =c('var'))
+#this presents overtime with job satisfaction with filtered MCA
+res.MCA2<-MCA(Attrition, ncp = 8, quanti.sup=c(1,4,6,11,17,18,19,21,25,26,28,29,30,31),quali.sup=c(2,5,7,8,13,14,16,24),graph=FALSE)
+plot.MCA(res.MCA2,selectMod= 'contrib  9 ',habillage=20,label =c('var','quali.sup'))#overtime job satis
+plot.MCA(res.MCA2,selectMod= 'contrib  9 ',habillage=3,label =c('var','quali.sup')) #travel 
+plot.MCA(res.MCA2,axes=c(6,2),selectMod= 'contrib  9 ',habillage=27,label =c('quali.sup'))# dim 2 and 6 worklife balan
+plot.MCA(res.MCA2,axes=c(3,2),selectMod= 'contrib  9 ',habillage=12,label =c('quali.sup')) # dim 2 and 3 JobInv invers
+plot.MCA(res.MCA2,axes=c(3,2),selectMod= 'contrib  9 ',habillage=15,label =c('quali.sup'))# dim 2 and 3 Jobsatisf 
+
+
+#PROGRAMA
+#AttritionMCA <-Factoshiny(Attrition)
+#Factoshiny(AttritionMCA)
+```
+
+
+
+
+
