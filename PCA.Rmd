@@ -90,7 +90,7 @@ fviz_pca_biplot(pca_values)
 
 ## 1.2 All numerical variables minus AgetoJubilation, HourlyRate, DailyRate, MonthlyRate
 
-### 1.2.1 Scree plot 
+### 1.2.1 Scree plot
 
 ```{r, echo=TRUE}
 
