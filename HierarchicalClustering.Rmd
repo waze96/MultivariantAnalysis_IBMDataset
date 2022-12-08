@@ -1,15 +1,20 @@
 ---
-editor_options: 
-  markdown: 
-    wrap: 72
+output:
+  word_document: default
+  pdf_document: default
+  html_document: default
+editor_options:
+  chunk_output_type: console
 ---
 
 # Retrieve the data saved AFTER the profiling practice, this means data already cleaned
 
-```{r}
-setwd("~/Documents/UPC/1Q/MultivariateAnalysis_MVVA/Labs/Deliverables/MultivariantAnalysis_IBMDataset/")
+```{r, echo=FALSE}
+
+setwd("~/GitHub/MultivariantAnalysis_IBMDataset/")
 load("./Data/df_preprocessed_IBM_Employees.Rdata") 
 names(df) 
+
 dim(df)
 summary(df)
 
@@ -18,7 +23,8 @@ dcon<-df[!sapply(df, is.factor)]
 # 
 # CLUSTERING
 # 
-
+dcon[c(1:5),]
+dist(dcon[c(1:5),])
 # HIERARCHICAL CLUSTERING
 # Euclidean distance
 d<-dist(dcon) 

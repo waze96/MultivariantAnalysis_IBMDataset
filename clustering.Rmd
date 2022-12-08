@@ -1,0 +1,61 @@
+---
+title: "clustering"
+output: pdf_document
+date: "2022-10-15"
+---
+
+```{r, setup, include=FALSE, echo=FALSE}
+
+library(cluster)
+library(factoextra)
+library(fpc)
+library(NbClust)
+library(rgl)
+library(dplyr)
+library(fpc)
+library(reshape2)
+library(tidyr)
+library(ggplot2)
+library(stats)
+library(cluster)
+library(factoextra)
+library(colorspace)
+library(tidyverse)
+library(ggpubr)
+library(NbClust)
+
+PROJECT_PATH="C:/Users/jordi/Documents/GitHub/MultivariantAnalysis_IBMDataset"
+setwd(PROJECT_PATH)
+
+```
+
+
+# 1. Import data
+
+```{R}
+
+load("./Data/df_preprocessed_IBM_Employees.Rdata") 
+
+
+```
+
+
+```{R}
+
+str(df)
+
+Age MonthlyIncome NumCompaniesWorked PercentSalaryHike TotalWorkingYears TrainingTimesLastYear YearsAtCompany          YearsInCurrentRole YearsSinceLastPromotion YearsWithCurrManager    SalaryHikePerYear      AgeToJubilation          
+
+
+
+dcon <- data.frame (Antiguedad.Trabajo,Plazo,Edad,Gastos,Ingresos,Patrimonio,Cargas.patrimoniales,Importe.solicitado,Precio.del.bien.financiado,Estalvi, RatiFin)
+
+dim(dcon)
+
+
+```
+
+
+
+
+

@@ -1,0 +1,99 @@
+---
+output:
+  word_document: default
+  pdf_document: default
+  html_document: default
+editor_options:
+  chunk_output_type: console
+---
+
+#Import dataset
+```{r, echo=FALSE}
+library(caret)
+
+
+setwd("~/GitHub/MultivariantAnalysis_IBMDataset/")
+load("./Data/df_preprocessed_IBM_Employees.Rdata") 
+names(df) 
+
+```
+
+#0 eliminate irrelevant columns
+```{r, echo=FALSE}
+
+dcat<-df[!sapply(df, is.factor)]
+
+colnames(dcat)
+
+colnames(dcat[,c(1,4,6,7,8,10,14,15)])
+
+df_red <- dcat[,c(1,4,6,7,8,10,14,15)]
+
+```
+
+
+# 1 transform variables (normalize and scale)
+```{r, echo=FALSE}
+
+df_trans <- df_red
+
+
+hist(df_red$Age) # normalize(scale)
+hist(scale(df_red$Age))
+
+hist(df_red$MonthlyIncome, breaks = 20) # create quantiles ?
+
+hist(df_red$NumCompaniesWorked) 
+
+hist(df_red$PercentSalaryHike) 
+
+hist(df_red$TotalWorkingYears) # create quantiles ? 
+
+hist(df_red$YearsAtCompany) # log 
+hist(log(df_red$YearsAtCompany))
+df_trans$YearsAtCompany <- log(df_red$YearsAtCompany+1)
+
+hist(df_red$SalaryHikePerYear) # log 
+hist(log(df_red$SalaryHikePerYear))
+df_trans$SalaryHikePerYear <- log(df_red$SalaryHikePerYear)
+
+hist(df_red$AverageYearsCompany) # log 
+hist(log(df_red$AverageYearsCompany))
+df_trans$AverageYearsCompany <- log(df_red$AverageYearsCompany)
+
+df_norm<-df_trans
+
+range01 <- function(x){(x-min(x))/(max(x)-min(x))}
+
+for(i in colnames(df_trans)){
+  df_norm[,i] <- range01(df_trans[,i])
+}
+
+
+boxplot(df_norm)
+
+```
+
+
+```{r, echo=FALSE}
+
+
+d<-dist(df_norm) 
+h1<- hclust(d,method="ward.D")
+plot(h1)
+
+c2<-cutree(h1,2)
+df_norm$clust<-as.factor(c2)
+
+colnames(df_norm)
+
+ggpairs(df_norm, columns = c(1:4), aes(color = clust, alpha = 0.5),progress = FALSE)
+ggpairs(df_norm, columns = c(5:8), aes(color = clust, alpha = 0.5),progress = FALSE)
+
+pairs(df_norm[,1:8], col=c1)
+
+```
+
+
+
+
