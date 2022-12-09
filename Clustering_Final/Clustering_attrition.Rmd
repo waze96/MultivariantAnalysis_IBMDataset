@@ -1,0 +1,110 @@
+---
+output:
+  word_document: default
+  pdf_document: default
+  html_document: default
+editor_options:
+  chunk_output_type: console
+---
+
+#Import dataset
+```{r, echo=FALSE}
+library(caret)
+library(GGally)
+library(cluster)
+
+
+setwd("~/GitHub/MultivariantAnalysis_IBMDataset/")
+load("./Data/df_preprocessed_IBM_Employees.Rdata") 
+names(df) 
+
+```
+
+#0 eliminate irrelevant columns
+```{r, echo=FALSE}
+colnames(df)
+
+df<-subset(df, select = c(Age,Gender,Education, JobInvolvement, JobSatisfaction, OverTime,TotalWorkingYears, PerformanceRating))
+
+colnames(df)
+
+```
+
+
+# 1 transform numerical variables (normalize and scale)
+```{r, echo=FALSE}
+
+df_trans <- df
+
+
+hist(df$Age) # normalize(scale)
+hist(scale(df$Age))
+
+hist(df$TotalWorkingYears) # log 
+hist(log(df$TotalWorkingYears))
+df_trans$TotalWorkingYears <- log(df$TotalWorkingYears+1)
+
+df_norm<-df_trans
+
+range01 <- function(x){(x-min(x))/(max(x)-min(x))}
+
+df_norm[,c(1)] <- range01(df_trans[,c(1)])
+df_norm[,c(7)] <- range01(df_trans[,c(7)])
+
+
+boxplot(df_norm[,c(1,7)])
+
+```
+
+
+# 2 transform categorical variables HEM DONA RESULTATS MOLT RAROS, NO ESTIC SEGUR QUE S'HAGUI DE FER EL HOT ENCODE... 
+```{r, echo=FALSE}
+
+library(mltools)
+library(data.table)
+
+df_norm$Gender_aux <- 0
+df_norm[df_norm$Gender == "Male","Gender_aux"] <- 1
+df_norm$Gender <- df_norm$Gender_aux 
+
+df_norm$PerformanceRating_aux <- 0
+df_norm[df_norm$PerformanceRating == "Excellent","PerformanceRating_aux"] <- 1
+df_norm$PerformanceRating <- df_norm$PerformanceRating_aux 
+
+df_norm$OverTime_aux <- 0
+df_norm[df_norm$OverTime == "Yes","OverTime_aux"] <- 1
+df_norm$OverTime <- df_norm$OverTime_aux 
+
+df_norm<-subset(df_norm, select = -c(PerformanceRating_aux, Gender_aux, OverTime_aux))
+
+df_norm <- one_hot(as.data.table(df_norm)) 
+
+```
+
+
+
+
+
+# 3 Clustering 
+```{r, echo=FALSE}
+
+#dissimilarity matrix
+dissimMatrix <- daisy(df_norm, metric = "gower", stand=TRUE)
+distMatrix<-dissimMatrix^2
+
+h1<-hclust(distMatrix,method="ward.D")
+plot(h1) 
+c2<-cutree(h1,4)
+df_norm$clust<-as.factor(c2)
+
+
+#plot results
+ggpairs(df_norm, columns = c(1:8), aes(color = clust, alpha = 0.5),progress = FALSE)
+ggpairs(df_norm, columns = c(5:8), aes(color = clust, alpha = 0.5),progress = FALSE)
+
+```
+
+
+
+
+
