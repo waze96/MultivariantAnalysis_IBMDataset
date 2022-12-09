@@ -10,6 +10,8 @@ editor_options:
 #Import dataset
 ```{r, echo=FALSE}
 library(caret)
+library(GGally)
+library(cluster)
 
 
 setwd("~/GitHub/MultivariantAnalysis_IBMDataset/")
@@ -20,7 +22,7 @@ names(df)
 
 #0 eliminate irrelevant columns
 ```{r, echo=FALSE}
-
+colnames(df)
 dcat<-df[!sapply(df, is.factor)]
 
 colnames(dcat)
@@ -77,23 +79,21 @@ boxplot(df_norm)
 
 #Results from numerical transformed variables
 ```{r, echo=FALSE}
+#types of distances: "euclidean", "maximum", "manhattan", "canberra", "binary"
+#types of methods for clustering "ward.D", "ward.D2", "single", "complete", "average" (= UPGMA), "mcquitty" (= WPGMA), "median" (= WPGMC) or "centroid" (= UPGMC).
 
-
-d<-dist(df_norm) 
+d<-dist(df_norm,method = "euclidean") 
 h1<- hclust(d,method="ward.D")
 plot(h1)
 
-c2<-cutree(h1,2)
+c2<-cutree(h1,4)
 df_norm$clust<-as.factor(c2)
 
 colnames(df_norm)
 
-df_norm$Attrition <- df_join$Attrition
-
 ggpairs(df_norm, columns = c(1:4), aes(color = clust, alpha = 0.5),progress = FALSE)
 ggpairs(df_norm, columns = c(5:8), aes(color = clust, alpha = 0.5),progress = FALSE)
 
-pairs(df_norm[,1:8], col=c1)
 
 
 ```
@@ -106,7 +106,7 @@ library(cluster)
 
 #Take all the categorical variables into dcategoriques and delete the usless variables
 dcategoriques<-df[sapply(df, is.factor)]
-dcategoriques<-subset(dcategoriques, select = -c(DistanceFromHome,Education, EducationField, JobLevel, JobRole))
+dcategoriques<-subset(dcategoriques, select = -c(Attrition,DistanceFromHome,Education, EducationField, JobLevel, JobRole))
 names(dcategoriques)
 
 #join the dcategoriques with the filtered df_norm into a new df ->df_join
@@ -140,17 +140,22 @@ ggpairs(df_join, columns = c(11:15), aes(color = clust, alpha = 0.5),progress = 
 ggpairs(df_join, columns = c(16:20), aes(color = clust, alpha = 0.5),progress = FALSE)
 ggpairs(df_join, columns = c(21:24), aes(color = clust, alpha = 0.5),progress = FALSE)
 
+
+
+df$RelationshipSatisfaction
+colnames(df)
 ```
 
 
 
 
-
-
-
-
-
-
+EnvironmentSatisfaction
+JobInvolvement
+WorkLifeBalance
+OverTime
+PerformanceRating
+SalaryHikePerYear
+StockOptionLevelS
 
 
 
