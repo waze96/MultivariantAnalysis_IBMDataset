@@ -11,99 +11,167 @@ editor_options:
 
 ```{r, echo=FALSE}
 
-setwd("~/GitHub/MultivariantAnalysis_IBMDataset/")
+library(GGally)
+library(cluster)
+library(ggplot2)
+
 load("./Data/df_preprocessed_IBM_Employees.Rdata") 
 names(df) 
 
 dim(df)
 summary(df)
 
+# Remove usless variables.
+df<-subset(df, select = -c(DailyRate,HourlyRate,MonthlyRate,AgeToJubilation,TrainingTimesLastYear,DistanceFromHome))
+
 dcon<-df[!sapply(df, is.factor)]
 
-# 
-# CLUSTERING
-# 
-dcon[c(1:5),]
-dist(dcon[c(1:5),])
-# HIERARCHICAL CLUSTERING
-# Euclidean distance
-d<-dist(dcon) 
-h1<- hclust(d,method="ward.D")
-plot(h1)
 ```
+
+# Transform and Normalize
+
+```{r}
+
+df_trans <- dcon
+
+hist(dcon$Age) # normalize(scale)
+hist(scale(dcon$Age))
+
+hist(dcon$MonthlyIncome, breaks = 20) # log?
+df_trans$MonthlyIncome <- log(dcon$MonthlyIncome)
+hist(df_trans$MonthlyIncome, breaks = 20) # create quantiles ?
+
+hist(dcon$NumCompaniesWorked) 
+
+hist(dcon$PercentSalaryHike) 
+
+hist(dcon$TotalWorkingYears) # create quantiles ? 
+
+hist(dcon$YearsAtCompany) # log 
+hist(log(dcon$YearsAtCompany))
+df_trans$YearsAtCompany <- log(dcon$YearsAtCompany+1)
+
+hist(dcon$SalaryHikePerYear) # log 
+hist(log(dcon$SalaryHikePerYear))
+df_trans$SalaryHikePerYear <- log(dcon$SalaryHikePerYear)
+
+hist(dcon$AverageYearsCompany) # log 
+hist(log(dcon$AverageYearsCompany))
+df_trans$AverageYearsCompany <- log(dcon$AverageYearsCompany)
+
+df_norm<-df_trans
+
+range01 <- function(x){(x-min(x))/(max(x)-min(x))}
+for(i in colnames(df_trans)){ df_norm[,i] <- range01(df_trans[,i]) }
+
+boxplot(df_norm)
+
+```
+
+# CLUSTERING
+
+```{r, echo=FALSE}
+
+df_norm[c(1:5),]
+dist(df_norm[c(1:5),])
+# HIERARCHICAL CLUSTERING (Euclidean distance)
+d<-dist(df_norm) 
+h1<- hclust(d,method="ward.D")
+
+options(max.print=2000)
+h1$height # height of the tree branches
+plot(h1)
+rect.hclust(h1, h=45.23490403,border="green") # 6 clusters
+rect.hclust(h1, h=50.06270659,border="blue") # 4 clusters
+rect.hclust(h1, h=53.16115400,border="red") # 3 clusters
+rect.hclust(h1, h=76.99302916,border="orange") # 3 clusters
+rect.hclust(h1, h=186.14590016,border="purple") # 2 clusters
+
+
+```
+
+# MEANS per CLUSTER
 
 ```{r, echo=FALSE}
 # WHERE ARE THER THE LEAPS? WHERE WILL YOU CUT THE DENDOGRAM?, HOW MANY CLASSES WILL YOU OBTAIN?
-nc = 5
+nc = 6
 c1<-cutree(h1,nc)
 df$cluster<-c1
-dcon$cluster<-as.factor(c1)
-nc = 5
-c5 <- cutree(h1,nc)
-
-table(c1) 
-table(c5) 
-table(c1,c5)
 
 cdg <- aggregate(as.data.frame(dcon),list(c1),mean) 
 cdg
 
+dcon$cluster<-as.factor(c1)
+
+table(c1) 
 # LETS SEE THE PARTITION VISUALLY
 #ggplot(df, aes(MonthlyIncome, Age, color=cluster, shape=Attrition))+
 #   geom_point()
 
-#install.packages("GGally")
-library(GGally)
 
-ggp1<-ggpairs(dcon, columns = c(1,7,8), aes(color = cluster, alpha = 0.5))
-print(ggp1, progress = F)
-
-ggp2<-ggpairs(dcon, columns = c(10,11,12,13), aes(color = cluster, alpha = 0.5)) 
-print(ggp2, progress = F)
-
-ggp3<-ggpairs(dcon, columns = c(14,15,16), aes(color = cluster, alpha = 0.5)) 
-print(ggp3, progress = F)
+ggpairs(dcon, columns=c(1:4,12), aes(color=cluster, alpha=0.5), progress=F)
+ggpairs(dcon, columns=c(5:8,12), aes(color=cluster, alpha=0.5), progress=F)
+ggpairs(dcon, columns=c(9:12), aes(color=cluster, alpha=0.5),progress=F)
 
 
 ```
 
-
+# Mixed variables
 
 ```{r}
 #move to Gower mixed distance to deal 
 #simoultaneously with numerical and qualitative data
+dcategoriques<-df[sapply(df, is.factor)]
+#dcategoriques<-subset(dcategoriques, select = -c(DistanceFromHome,Education, EducationField, JobLevel, JobRole))
+dcategoriques<-subset(dcategoriques, select = -c(Attrition))
+names(dcategoriques)
 
-library(cluster)
+#join the dcategoriques with the filtered df_norm into a new df ->df_join
+colnames(df_norm)
+
+df_join <- df_norm
+
+for(i in colnames(dcategoriques)){ df_join[,i] <- dcategoriques[,i] }
+colnames(df_join)
 
 #dissimilarity matrix
 
-df_pro<-subset(df, select = -c(DailyRate,HourlyRate,MonthlyRate,AgeToJubilation,TrainingTimesLastYear,DistanceFromHome))
-
-dissimMatrix <- daisy(df_pro, metric = "gower", stand=TRUE)
+dissimMatrix <- daisy(df_join, metric = "gower", stand=TRUE)
 distMatrix<-dissimMatrix^2
 
 h1<-hclust(distMatrix,method="ward.D")
-plot(h1) 
-c2<-cutree(h1,3)
-df_pro$clust<-as.factor(c2)
-#class sizes table(c2)
 
-#Attrition 
-boxplot(df_pro$Attrition~c2)
+options(max.print=2000)
+h1$height # height of the tree branches
+plot(h1)
+rect.hclust(h1, h=4.718142549,border="green") # 6 clusters
+rect.hclust(h1, h=9.018713628,border="blue") # 3 clusters
+rect.hclust(h1, h=17.808008541,border="red") # 2 clusters
+rect.hclust(h1, h=28.610542954,border="orange") # 2 clusters
+
+plot(h1) 
+c2<-cutree(h1,6)
+# Add cluster classification + Attrtion after clustering
+df_join$clust<-as.factor(c2)
+df_join$Attrition<-df$Attrition
+
+#Attrition
+boxplot(df_join$Attrition~df_join$clust)
+table(df_join$Attrition,df_join$clust)
 
 #MonthlyIncome 
-boxplot(df_pro$MonthlyIncome~c2, horizontal=TRUE)
+boxplot(df_join$MonthlyIncome~c2, horizontal=TRUE)
 
 
-ggpairs(df_pro, columns = c(2,1,3,4), aes(color = clust, alpha = 0.5),progress = FALSE)
-ggpairs(df_pro, columns = c(2,5,6,7), aes(color = clust, alpha = 0.5),progress = FALSE)
-ggpairs(df_pro, columns = c(2,8,9,10), aes(color = clust, alpha = 0.5),progress = FALSE)
-ggpairs(df_pro, columns = c(2,11,12,13), aes(color = clust, alpha = 0.5),progress = FALSE)
-ggpairs(df_pro, columns = c(2,14,15,16,17), aes(color = clust, alpha = 0.5),progress = FALSE)
-ggpairs(df_pro, columns = c(2,18,19,20,21), aes(color = clust, alpha = 0.5),progress = FALSE)
-ggpairs(df_pro, columns = c(2,22,23,24,25), aes(color = clust, alpha = 0.5),progress = FALSE)
-ggpairs(df_pro, columns = c(2,26,27,28,29), aes(color = clust, alpha = 0.5),progress = FALSE)
-ggpairs(df_pro, columns = c(2,30,31,32), aes(color = clust, alpha = 0.5),progress = FALSE)
+ggpairs(df_pro, columns = c(2,1:4), aes(color = clust, alpha = 0.5),progress = FALSE)
+ggpairs(df_pro, columns = c(2,5:7), aes(color = clust, alpha = 0.5),progress = FALSE)
+ggpairs(df_pro, columns = c(2,8:10), aes(color = clust, alpha = 0.5),progress = FALSE)
+ggpairs(df_pro, columns = c(2,11:13), aes(color = clust, alpha = 0.5),progress = FALSE)
+ggpairs(df_pro, columns = c(2,14:17), aes(color = clust, alpha = 0.5),progress = FALSE)
+ggpairs(df_pro, columns = c(2,18:21), aes(color = clust, alpha = 0.5),progress = FALSE)
+ggpairs(df_pro, columns = c(2,22:25), aes(color = clust, alpha = 0.5),progress = FALSE)
+ggpairs(df_pro, columns = c(2,26:29), aes(color = clust, alpha = 0.5),progress = FALSE)
+ggpairs(df_pro, columns = c(2,30:32), aes(color = clust, alpha = 0.5),progress = FALSE)
 
 
 ggpairs(df_pro, columns = c(2,4), aes(color = clust, alpha = 0.5),progress = FALSE)

@@ -7,18 +7,20 @@ editor_options:
   chunk_output_type: console
 ---
 
-#Import dataset
+# Import dataset and libraries
+
 ```{r, echo=FALSE}
 library(caret)
+library(GGally)
 
 
-setwd("~/GitHub/MultivariantAnalysis_IBMDataset/")
 load("./Data/df_preprocessed_IBM_Employees.Rdata") 
 names(df) 
 
 ```
 
-#0 eliminate irrelevant columns
+# 0 - Delete irrelevant columns
+
 ```{r, echo=FALSE}
 
 dcat<-df[!sapply(df, is.factor)]
@@ -31,8 +33,8 @@ df_red <- dcat[,c(1,4,6,7,8,10,14,15)]
 
 ```
 
+# 1 - Transform variables (normalize and scale)
 
-# 1 transform variables (normalize and scale)
 ```{r, echo=FALSE}
 
 df_trans <- df_red
@@ -74,8 +76,8 @@ boxplot(df_norm)
 
 ```
 
+# 2 - Results from numerical transformed variables
 
-#Results from numerical transformed variables
 ```{r, echo=FALSE}
 
 
@@ -88,19 +90,18 @@ df_norm$clust<-as.factor(c2)
 
 colnames(df_norm)
 
-df_norm$Attrition <- df_join$Attrition
+df_norm$Attrition <- df$Attrition
 
 ggpairs(df_norm, columns = c(1:4), aes(color = clust, alpha = 0.5),progress = FALSE)
 ggpairs(df_norm, columns = c(5:8), aes(color = clust, alpha = 0.5),progress = FALSE)
 
-pairs(df_norm[,1:8], col=c1)
+pairs(df_norm[,1:8])
 
 
 ```
 
-
-
 # 3 add categorical variables
+
 ```{r, echo=FALSE}
 library(cluster)
 
@@ -141,16 +142,3 @@ ggpairs(df_join, columns = c(16:20), aes(color = clust, alpha = 0.5),progress = 
 ggpairs(df_join, columns = c(21:24), aes(color = clust, alpha = 0.5),progress = FALSE)
 
 ```
-
-
-
-
-
-
-
-
-
-
-
-
-
