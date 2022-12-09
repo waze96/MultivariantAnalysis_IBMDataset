@@ -8,30 +8,31 @@ editor_options:
 ---
 
 #Import dataset
+
 ```{r, echo=FALSE}
 library(caret)
 library(GGally)
 library(cluster)
 
 
-setwd("~/GitHub/MultivariantAnalysis_IBMDataset/")
 load("./Data/df_preprocessed_IBM_Employees.Rdata") 
 names(df) 
 
 ```
 
-#0 eliminate irrelevant columns
+# 0 - Get relevant columns
+
 ```{r, echo=FALSE}
 colnames(df)
 
-df<-subset(df, select = c(EnvironmentSatisfaction, JobInvolvement, WorkLifeBalance, OverTime, PerformanceRating,SalaryHikePerYear, StockOptionLevel))
+df<-subset(df, select = c(EnvironmentSatisfaction, JobInvolvement, WorkLifeBalance, OverTime, PerformanceRating,SalaryHikePerYear)) # he tret stockoption level, crec que millora cluster
 
 colnames(df)
 
 ```
 
-
 # 1 transform numerical variables (normalize and scale)
+
 ```{r, echo=FALSE}
 
 df_trans <- df
@@ -43,25 +44,29 @@ df_trans$SalaryHikePerYear <- log(df$SalaryHikePerYear+1)
 df_norm<-df_trans
 
 range01 <- function(x){(x-min(x))/(max(x)-min(x))}
-
 df_norm[,c(6)] <- range01(df_trans[,c(6)])
 
 
-boxplot(df_norm[,c(6)])
 
 ```
 
+# 2 transform categorical variables
 
-# 2 transform categorical variables 
 ```{r, echo=FALSE}
 
+df_norm[,c(1)] <- range01(as.numeric(df_trans[,c(1)]))
+df_norm[,c(2)] <- range01(as.numeric(df_trans[,c(2)]))
+df_norm[,c(3)] <- range01(as.numeric(df_trans[,c(3)]))
+df_norm[,c(4)] <- range01(as.numeric(df_trans[,c(4)]))
+df_norm[,c(5)] <- range01(as.numeric(df_trans[,c(5)]))
+
+colnames(df_norm)
+boxplot(df_norm) 
+
 ```
 
+# 3 Clustering
 
-
-
-
-# 3 Clustering 
 ```{r, echo=FALSE}
 
 #dissimilarity matrix
@@ -69,18 +74,38 @@ dissimMatrix <- daisy(df_norm, metric = "gower", stand=TRUE)
 distMatrix<-dissimMatrix^2
 
 h1<-hclust(distMatrix,method="ward.D")
-plot(h1) 
+options(max.print=2000)
+options(scipen=999)
+h1$height
+plot(h1)
+rect.hclust(h1, h=4.676613432883569,border="green") # 7 clusters
+rect.hclust(h1, h=8.836629913913978,border="red") # 5 clusters
+rect.hclust(h1, h=42.539874590219476,border="blue") # 3 clusters
+
+c1<-cutree(h1,3)
+df$cluster<-c1
+
+cdg <- aggregate(as.data.frame(df_norm),list(c1),mean) 
+cdg
+
+
+
+c2<-cutree(h1,3)
+df_norm$clust<-as.factor(c2)
+#plot results
+ggpairs(df_norm, columns = c(1:3), aes(color = clust, alpha = 0.5),progress = FALSE)
+ggpairs(df_norm, columns = c(4:6), aes(color = clust, alpha = 0.5),progress = FALSE)
+
 c2<-cutree(h1,5)
 df_norm$clust<-as.factor(c2)
-
-
 #plot results
-ggpairs(df_norm, columns = c(1:4), aes(color = clust, alpha = 0.5),progress = FALSE)
-ggpairs(df_norm, columns = c(5:8), aes(color = clust, alpha = 0.5),progress = FALSE)
+ggpairs(df_norm, columns = c(1:3), aes(color = clust, alpha = 0.5),progress = FALSE)
+ggpairs(df_norm, columns = c(4:6), aes(color = clust, alpha = 0.5),progress = FALSE)
+
+c2<-cutree(h1,7)
+df_norm$clust<-as.factor(c2)
+#plot results
+ggpairs(df_norm, columns = c(1:3), aes(color = clust, alpha = 0.5),progress = FALSE)
+ggpairs(df_norm, columns = c(4:6), aes(color = clust, alpha = 0.5),progress = FALSE)
 
 ```
-
-
-
-
-

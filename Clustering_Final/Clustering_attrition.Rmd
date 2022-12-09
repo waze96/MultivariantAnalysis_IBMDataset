@@ -8,103 +8,147 @@ editor_options:
 ---
 
 #Import dataset
+
 ```{r, echo=FALSE}
 library(caret)
 library(GGally)
 library(cluster)
+library(FactoMineR)
+library(plyr)
+library(psych)
 
-
-setwd("~/GitHub/MultivariantAnalysis_IBMDataset/")
 load("./Data/df_preprocessed_IBM_Employees.Rdata") 
 names(df) 
+df0<-df
+```
+
+# 0 - Get relevant columns
+
+```{r}
+catdes(df, num.var=2, proba=0.01)
+
+# Relevant p-values
+df<-subset(df, select = c(OverTime,JobLevel,StockOptionLevel, MaritalStatus, JobRole, JobInvolvement,EnvironmentSatisfaction, JobSatisfaction,SalaryHikePerYear,TotalWorkingYears,YearsInCurrentRole,MonthlyIncome,Age,YearsWithCurrManager,AverageYearsCompany,YearsAtCompany))
+
+#JobInvolvement,EnvironmentSatisfaction, JobSatisfaction, MaritalStatus,StockOptionLevel
+#df<-subset(df, select = c(OverTime,JobLevel, JobRole,SalaryHikePerYear,TotalWorkingYears,YearsInCurrentRole,MonthlyIncome,Age,YearsWithCurrManager,AverageYearsCompany,YearsAtCompany))
 
 ```
 
-#0 eliminate irrelevant columns
-```{r, echo=FALSE}
-colnames(df)
+# 1 - Transform numerical variables (normalize and scale)
 
-df<-subset(df, select = c(Age,Gender,Education, JobInvolvement, JobSatisfaction, OverTime,TotalWorkingYears, PerformanceRating))
-
-colnames(df)
-
-```
-
-
-# 1 transform numerical variables (normalize and scale)
 ```{r, echo=FALSE}
 
-df_trans <- df
+dcon<-df[!sapply(df, is.factor)]
 
+df_trans <- dcon
 
-hist(df$Age) # normalize(scale)
-hist(scale(df$Age))
+# Loop`histograms for numeric variables`
+lapply(X=colnames(dcon), FUN=function(s){ 
+    hist(dcon[, s], main=paste("Histogram of", s)) 
+})
 
-hist(df$TotalWorkingYears) # log 
-hist(log(df$TotalWorkingYears))
-df_trans$TotalWorkingYears <- log(df$TotalWorkingYears+1)
+hist(log(dcon$SalaryHikePerYear))
+df_trans$SalaryHikePerYear <- log(dcon$SalaryHikePerYear+1)
+
+hist(log(dcon$TotalWorkingYears))
+df_trans$TotalWorkingYears <- log(dcon$TotalWorkingYears+0.5)
+
+hist(log(dcon$YearsInCurrentRole))
+df_trans$YearsInCurrentRole <- log(dcon$YearsInCurrentRole+0.5)
+
+hist(log(dcon$MonthlyIncome))
+df_trans$MonthlyIncome <- log(dcon$MonthlyIncome)
+
+hist(scale(dcon$Age))
+df_trans$Age <- scale(dcon$Age)[,1]
+
+hist(log(dcon$YearsWithCurrManager))
+df_trans$YearsWithCurrManager <- log(dcon$YearsWithCurrManager+0.5)
+
+hist(log(dcon$AverageYearsCompany))
+df_trans$AverageYearsCompany <- log(dcon$AverageYearsCompany+0.5)
 
 df_norm<-df_trans
+colnames(df_norm)
 
-range01 <- function(x){(x-min(x))/(max(x)-min(x))}
+range01 <- function(x){ (x-min(x))/(max(x)-min(x)) }
 
-df_norm[,c(1)] <- range01(df_trans[,c(1)])
-df_norm[,c(7)] <- range01(df_trans[,c(7)])
+for (colname in colnames(dcon)) {
+  df_norm[,colname]<-range01(df_norm[,colname])
+}
 
-
-boxplot(df_norm[,c(1,7)])
+boxplot(df_norm[,c(1:8)])
 
 ```
 
+# 2 - Add categorical variables to final Dataframe
 
-# 2 transform categorical variables HEM DONA RESULTATS MOLT RAROS, NO ESTIC SEGUR QUE S'HAGUI DE FER EL HOT ENCODE... 
 ```{r, echo=FALSE}
 
-library(mltools)
-library(data.table)
+dcat<-df[sapply(df, is.factor)]
 
-df_norm$Gender_aux <- 0
-df_norm[df_norm$Gender == "Male","Gender_aux"] <- 1
-df_norm$Gender <- df_norm$Gender_aux 
+for (colname in colnames(dcat)) { df_norm[,colname]<- dcat[,colname] }
 
-df_norm$PerformanceRating_aux <- 0
-df_norm[df_norm$PerformanceRating == "Excellent","PerformanceRating_aux"] <- 1
-df_norm$PerformanceRating <- df_norm$PerformanceRating_aux 
-
-df_norm$OverTime_aux <- 0
-df_norm[df_norm$OverTime == "Yes","OverTime_aux"] <- 1
-df_norm$OverTime <- df_norm$OverTime_aux 
-
-df_norm<-subset(df_norm, select = -c(PerformanceRating_aux, Gender_aux, OverTime_aux))
-
-df_norm <- one_hot(as.data.table(df_norm)) 
+colnames(df_norm)
+boxplot(df_norm) 
 
 ```
 
+# 3 - Clustering
 
-
-
-
-# 3 Clustering 
 ```{r, echo=FALSE}
 
 #dissimilarity matrix
 dissimMatrix <- daisy(df_norm, metric = "gower", stand=TRUE)
 distMatrix<-dissimMatrix^2
-
+summary(df_norm)
 h1<-hclust(distMatrix,method="ward.D")
+options(max.print=2000)
+options(scipen=999)
+h1$height
 plot(h1) 
-c2<-cutree(h1,4)
+# For first subset
+rect.hclust(h1, h=8.97556177712,border="green") # 6 clusters
+rect.hclust(h1, h=17.29880121544,border="red") # 3 clusters
+rect.hclust(h1, h=21.59377395634,border="blue") # 3 clusters
+
+# For second subset
+#rect.hclust(h1, h=11.74583336365,border="green") # 5 clusters
+#rect.hclust(h1, h=20.86606866385,border="red") # 4 clusters
+#rect.hclust(h1, h=25.64470082455,border="blue") # 2 clusters
+
+
+c1<-cutree(h1,2)
+df$cluster<-c1
+
+cdg <- aggregate(as.data.frame(df_norm),list(c1),mean) 
+cdg
+
+df_norm$Attrition<-df0$Attrition
+
+c2<-cutree(h1,2)
 df_norm$clust<-as.factor(c2)
-
-
+table(df_norm$Attrition,df_norm$clust)
 #plot results
-ggpairs(df_norm, columns = c(1:8), aes(color = clust, alpha = 0.5),progress = FALSE)
+ggpairs(df_norm, columns = c(1:4), aes(color = clust, alpha = 0.5),progress = FALSE)
 ggpairs(df_norm, columns = c(5:8), aes(color = clust, alpha = 0.5),progress = FALSE)
+ggpairs(df_norm, columns = c(9:13), aes(color = clust, alpha = 0.5),progress = FALSE)
+
+c2<-cutree(h1,3)
+df_norm$clust<-as.factor(c2)
+table(df_norm$Attrition,df_norm$clust)
+#plot results
+ggpairs(df_norm, columns = c(1:4), aes(color = clust, alpha = 0.5),progress = FALSE)
+ggpairs(df_norm, columns = c(5:8), aes(color = clust, alpha = 0.5),progress = FALSE)
+ggpairs(df_norm, columns = c(9:13), aes(color = clust, alpha = 0.5),progress = FALSE)
+
+c2<-cutree(h1,6)
+df_norm$clust<-as.factor(c2)
+table(df_norm$Attrition,df_norm$clust)
+#plot results
+ggpairs(df_norm, columns = c(1:4), aes(color = clust, alpha = 0.5),progress = FALSE)
+ggpairs(df_norm, columns = c(5:8), aes(color = clust, alpha = 0.5),progress = FALSE)
+ggpairs(df_norm, columns = c(9:13), aes(color = clust, alpha = 0.5),progress = FALSE)
 
 ```
-
-
-
-
-
