@@ -57,54 +57,36 @@ boxplot(df_norm[,c(1,7)])
 ```
 
 
-# 2 transform categorical variables HEM DONA RESULTATS MOLT RAROS, NO ESTIC SEGUR QUE S'HAGUI DE FER EL HOT ENCODE... 
-```{r, echo=FALSE}
-
-library(mltools)
-library(data.table)
-
-df_norm$Gender_aux <- 0
-df_norm[df_norm$Gender == "Male","Gender_aux"] <- 1
-df_norm$Gender <- df_norm$Gender_aux 
-
-df_norm$PerformanceRating_aux <- 0
-df_norm[df_norm$PerformanceRating == "Excellent","PerformanceRating_aux"] <- 1
-df_norm$PerformanceRating <- df_norm$PerformanceRating_aux 
-
-df_norm$OverTime_aux <- 0
-df_norm[df_norm$OverTime == "Yes","OverTime_aux"] <- 1
-df_norm$OverTime <- df_norm$OverTime_aux 
-
-df_norm<-subset(df_norm, select = -c(PerformanceRating_aux, Gender_aux, OverTime_aux))
-
-df_norm <- one_hot(as.data.table(df_norm)) 
-
-```
-
-
-
-
-
-# 3 Clustering 
+# 3 Clustering 2
 ```{r, echo=FALSE}
 
 #dissimilarity matrix
-dissimMatrix <- daisy(df_norm, metric = "gower", stand=TRUE)
+colnames(df_norm[,c(1:4,6)])
+
+p<-c(5,1,1.7,1.5,1.5)
+dissimMatrix <- daisy(df_norm[,c(1:4,6)], metric = "gower",weights = p,  stand=TRUE)
 distMatrix<-dissimMatrix^2
 
 h1<-hclust(distMatrix,method="ward.D")
+
+options(max.print=2000)
+options(scipen=999)
+h1$height
+
 plot(h1) 
-c2<-cutree(h1,4)
+
+rect.hclust(h1, h=18.1290048755   , border="red") # 2 clusters
+
+rect.hclust(h1, h=27   , border="blue") # 4 clusters
+
+c2<-cutree(h1,6)
 df_norm$clust<-as.factor(c2)
 
-
 #plot results
-ggpairs(df_norm, columns = c(1:8), aes(color = clust, alpha = 0.5),progress = FALSE)
-ggpairs(df_norm, columns = c(5:8), aes(color = clust, alpha = 0.5),progress = FALSE)
+ggpairs(df_norm[,c(1:3,9)], columns = c(1:4), aes(color = clust, alpha = 0.5),progress = FALSE)
+ggpairs(df_norm[,c(4,6,9)], columns = c(1:3), aes(color = clust, alpha = 0.5),progress = FALSE)
 
 ```
-
-
 
 
 

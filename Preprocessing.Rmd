@@ -19,7 +19,7 @@ packages.check <- lapply(requiredPackages, FUN = function(x) {
 
 PROJECT_PATH="C:/Users/david/Documents/GitHub/MultivariantAnalysis_IBMDataset"
 
-setwd(PROJECT_PATH)
+#setwd(PROJECT_PATH)
 
 ```
 
