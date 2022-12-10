@@ -145,12 +145,13 @@ options(max.print=2000)
 h1$height # height of the tree branches
 plot(h1)
 rect.hclust(h1, h=4.718142549,border="green") # 6 clusters
+rect.hclust(h1, h=5.623154687,border="blue") # 6 clusters
 rect.hclust(h1, h=9.018713628,border="blue") # 3 clusters
 rect.hclust(h1, h=17.808008541,border="red") # 2 clusters
 rect.hclust(h1, h=28.610542954,border="orange") # 2 clusters
 
 plot(h1) 
-c2<-cutree(h1,6)
+c2<-cutree(h1,5)
 # Add cluster classification + Attrtion after clustering
 df_join$clust<-as.factor(c2)
 df_join$Attrition<-df$Attrition
