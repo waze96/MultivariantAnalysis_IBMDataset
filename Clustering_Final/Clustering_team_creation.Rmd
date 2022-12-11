@@ -86,7 +86,90 @@ df_norm$clust<-as.factor(c2)
 ggpairs(df_norm[,c(1:3,9)], columns = c(1:4), aes(color = clust, alpha = 0.5),progress = FALSE)
 ggpairs(df_norm[,c(4,6,9)], columns = c(1:3), aes(color = clust, alpha = 0.5),progress = FALSE)
 
+ggpairs(df_norm[,c(1,9)], columns = c(1:2), aes(color = clust, alpha = 0.5),progress = FALSE)
+
+
+
 ```
 
 
+
+### 4 clusters
+
+```{r, echo=FALSE}
+total <- sum(table(df_norm$clust))
+100*table(df_norm$clust)[1]/total 
+100*table(df_norm$clust)[2]/total 
+100*table(df_norm$clust)[3]/total 
+100*table(df_norm$clust)[4]/total 
+100*table(df_norm$clust)[5]/total 
+100*table(df_norm$clust)[6]/total 
+
+table(df_norm$Education)
+ggplot(df_norm[,c(1:4,6,9)], aes(x= Education,  group=clust)) + 
+    geom_bar(aes(y = ..prop.., fill = factor(..x..,labels = c("Below College" ,      "College"  ,    "Bachelor"   ,     "Master" ,       "Doctor"))), stat="count") +
+    geom_text(aes( label = scales::percent(..prop..),
+                   y= ..prop.. ), stat= "count", vjust = -.5) +
+    labs(y = "Percent", fill="Education") +
+    facet_grid(~clust) +
+    scale_y_continuous(labels = scales::percent)
+
+table(df_norm$OverTime)
+ggplot(df_norm[,c(1:4,6,9)], aes(x= OverTime,  group=clust)) + 
+    geom_bar(aes(y = ..prop.., fill = factor(..x..,labels = c("No" , "Yes"))), stat="count") +
+    geom_text(aes( label = scales::percent(..prop..),
+                   y= ..prop.. ), stat= "count", vjust = -.5) +
+    labs(y = "Percent", fill="OverTime") +
+    facet_grid(~clust) +
+    scale_y_continuous(labels = scales::percent)
+
+table(df_norm$JobInvolvement)
+ggplot(df_norm[,c(1:4,6,9)], aes(x= JobInvolvement,  group=clust)) + 
+    geom_bar(aes(y = ..prop.., fill = factor(..x..,labels = c("Low" ,  "Medium" ,     "High", "Very High"))), stat="count") +
+    geom_text(aes( label = scales::percent(..prop..),
+                   y= ..prop.. ), stat= "count", vjust = -.5) +
+    labs(y = "Percent", fill="JobInvolvement") +
+    facet_grid(~clust) +
+    scale_y_continuous(labels = scales::percent)
+
+table(df_norm$Gender)
+ggplot(df_norm[,c(1:4,6,9)], aes(x= Gender,  group=clust)) + 
+    geom_bar(aes(y = ..prop.., fill = factor(..x..,labels = c("Female",   "Male"))), stat="count") +
+    geom_text(aes( label = scales::percent(..prop..),
+                   y= ..prop.. ), stat= "count", vjust = -.5) +
+    labs(y = "Percent", fill="Gender") +
+    facet_grid(~clust) +
+    scale_y_continuous(labels = scales::percent)
+
+#plot results
+ggpairs(df_norm, columns=c(1:4), aes(color = clust, alpha = 0.5),progress = FALSE)
+ggpairs(df_norm, columns=c(5:8), aes(color = clust, alpha = 0.5),progress = FALSE)
+ggpairs(df_norm, columns=c(9:12), aes(color = clust, alpha = 0.5),progress = FALSE)
+ggpairs(df_norm, columns=c(13:16), aes(color = clust, alpha = 0.5),progress = FALSE)
+
+
+p <- ggplot(df, aes(x=Age, y=OverTime)) + 
+  geom_boxplot()
+p
+
+
+hist(df[df$OverTime == "Yes",]$Age)
+hist(df[df$OverTime == "No",]$Age)
+
+100 * table(df$Age,df$OverTime)[,2]/(table(df$Age,df$OverTime)[,1] + table(df$Age,df$OverTime)[,2])
+
+
+df$clust <- df_norm$clust
+
+hist(df[df$clust == 2,]$Age)
+hist(df[(df$clust == 2) & (df$Age > 45),]$MonthlyIncome)
+hist(df[(df$clust == 5) & (df$Age > 45),]$MonthlyIncome)
+
+
+
+table(df$OverTime)
+
+
+
+```
 

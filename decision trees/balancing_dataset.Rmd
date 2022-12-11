@@ -1,0 +1,76 @@
+---
+output:
+  word_document: default
+  pdf_document: default
+  html_document: default
+editor_options:
+  chunk_output_type: console
+---
+https://medium.com/analytics-vidhya/what-is-balance-and-imbalance-dataset-89e8d7f46bc5
+
+## Import dataset
+
+```{r, echo=FALSE}
+requiredPackages <- c("ggplot2","rapportools","plyr","cowplot", "ggpubr", "corrplot", "corrplot", "mlbench", "caret", "FactoMineR", "ggcorrplot")
+
+packages.check <- lapply(requiredPackages, FUN = function(x) {
+  if(!require(x, character.only = TRUE)) {
+    install.packages(x, dependencies = TRUE)
+    library(x, character.only = TRUE)
+  }
+})
+
+plotPie <- function(feature, varName) {
+  nb <- count(feature)[2];
+  per <- c(round(nb/sum(nb)*100,2))$freq;
+  names <- levels(feature);
+  labs <- paste(names, per, "%");
+  #jpeg(paste(plot_path, data_names[i], ".jpeg", sep = ""), height=800, width=1000)
+  plot<-pie(summary(feature), labels = labs, main=paste("Pie Chart of ",varName));
+  return(plot)
+}
+
+load("./Data/df_preprocessed_IBM_Employees.Rdata") 
+names(df) 
+
+```
+
+
+
+
+# 1 - Initial Analysis
+```{r, echo=FALSE}
+table(df$Attrition)
+
+plotPie(df$Attrition, 'Attrition')
+
+```
+
+
+
+# 2 - Undersampling
+```{r, echo=FALSE}
+
+install.packages("ROSE")
+library(ROSE)
+
+
+balanced_sample = NULL
+
+
+for (c in unique(df$Attrition)) {
+  tmp_df = df%>%filter(Attrition==c)
+  tmp<-ovun.sample(Attrition ~ ., data = tmp_df, method = "under", p = 0.5, seed = 5)$data
+  balanced_sample<-rbind(balanced_sample, tmp)
+ }
+
+
+```
+
+
+
+
+
+
+
+
