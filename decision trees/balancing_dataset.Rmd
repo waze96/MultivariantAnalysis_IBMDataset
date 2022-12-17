@@ -60,7 +60,7 @@ balanced_sample = NULL
 
 for (c in unique(df$Attrition)) {
   tmp_df = df%>%filter(Attrition==c)
-  tmp<-ovun.sample(Attrition ~ ., data = tmp_df, method = "under", p = 0.5, seed = 5)$data
+  tmp<-ovun.sample(Click ~ ., data = tmp_df, method = "under", p = 0.5, seed = 5)$data
   balanced_sample<-rbind(balanced_sample, tmp)
  }
 
