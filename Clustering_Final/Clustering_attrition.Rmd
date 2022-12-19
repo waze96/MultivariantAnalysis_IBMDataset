@@ -131,8 +131,29 @@ ggplot(df_norm, aes(x= Attrition,  group=clust)) +
 #plot results
 ggpairs(df_norm, columns=c(1:4), aes(color = clust, alpha = 0.5),progress = FALSE)
 ggpairs(df_norm, columns=c(5:8), aes(color = clust, alpha = 0.5),progress = FALSE)
-ggpairs(df_norm, columns=c(9:12), aes(color = clust, alpha = 0.5),progress = FALSE)
-ggpairs(df_norm, columns=c(13:16), aes(color = clust, alpha = 0.5),progress = FALSE)
+
+
+
+ggpp <- function(colName){
+  p<-ggplot(df_norm,aes(x= df_norm[,colName],  group=clust)) + 
+      geom_bar(
+        aes(y=..prop..,fill = factor(..x..,labels=levels(df_norm[,colName]))), 
+        stat="count") +
+      geom_text(
+        aes(label=scales::percent(..prop..),
+             y= ..prop..), 
+        stat= "count",
+        vjust = -.5) +
+      labs(y = "Percent", fill=colName) +
+      facet_grid(~clust) +
+      scale_y_continuous(labels = scales::percent)+
+  theme(axis.text.x=element_blank(),
+        axis.ticks.x=element_blank() 
+        )
+  return(p)
+}
+
+for (colname in colnames(df_norm[,c(9:16)])) { plot(ggpp(colname)) }
 
 ```
 
@@ -153,8 +174,12 @@ ggplot(df_norm, aes(x= Attrition,  group=clust)) +
 #plot results
 ggpairs(df_norm, columns=c(1:4), aes(color = clust, alpha = 0.5),progress = FALSE)
 ggpairs(df_norm, columns=c(5:8), aes(color = clust, alpha = 0.5),progress = FALSE)
-ggpairs(df_norm, columns=c(9:12), aes(color = clust, alpha = 0.5),progress = FALSE)
-ggpairs(df_norm, columns=c(13:16), aes(color = clust, alpha = 0.5),progress = FALSE)
+
+for (colname in colnames(df_norm[,c(9:16)])) { plot(ggpp(colname)) }
+
+table(df_norm$clust)
+
+aggregate(as.data.frame(df_norm),list(c1),mean)
 
 ```
 
@@ -196,7 +221,7 @@ ValorTestXquali <- function(P,Xquali){
 
 dades<-df
 K<-dim(dades)[2]
-par(ask=TRUE)
+#par(ask=TRUE)
 
 
 #P must contain the class variable

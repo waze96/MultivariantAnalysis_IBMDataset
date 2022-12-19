@@ -17,9 +17,6 @@ packages.check <- lapply(requiredPackages, FUN = function(x) {
   }
 })
 
-PROJECT_PATH="~/Documents/UPC/1Q/MultivariateAnalysis_MVVA/Labs/MultivariantAnalysis_IBMDataset"
-
-setwd(PROJECT_PATH)
 
 ```
 
@@ -278,10 +275,11 @@ for (var1 in categoricalDf[-length(categoricalDf)]) {
 }
 
 ggplot(data = categoricalDf) +
-  geom_bar(aes(x = factor(OverTime), fill = factor(JobSatisfaction)), position = "fill")
+  geom_bar(aes(x = factor(OverTime), fill = JobSatisfaction), position = "fill")+
+        labs(x='OverTime', y='count')
 
 ggplot(data = categoricalDf) +
-  geom_bar(aes(x = factor(JobRole), fill = factor(Gender)), position = "fill")
+  geom_bar(aes(x = JobRole, fill = Gender), position = "fill")
 
 ggplot(data = categoricalDf) +
   geom_bar(aes(x = factor(JobLevel), fill = factor(StockOptionLevel)), position = "fill")

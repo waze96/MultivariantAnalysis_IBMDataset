@@ -1,0 +1,147 @@
+# Load libraries and dataset
+
+```{r}
+library(mda)
+set.seed(2)
+
+#load data
+load("./Data/df_preprocessed_IBM_Employees.Rdata")
+
+```
+
+# Create Train and Test datasets
+
+```{r}
+
+dcon<-df[!sapply(df, is.factor)]
+dcon$Attrition<-df$Attrition
+dcon<-dcon[,c(which(colnames(dcon)=="Attrition"),which(colnames(dcon)!="Attrition"))]
+dcon<-subset(dcon, select = -c(HourlyRate,DailyRate,MonthlyRate))
+
+#keep only numeric and moving attrition to first column to make things easier
+df2 <- dcon
+
+df2<-subset(df2, select = c(Attrition,Age,MonthlyIncome,NumCompaniesWorked,
+                            TotalWorkingYears,YearsAtCompany,SalaryHikePerYear,
+                            YearsInCurrentRole,YearsSinceLastPromotion,
+                            AverageYearsCompany))
+
+
+## SPLIT
+llwork <- sample(1:nrow(df2),round(0.8*nrow(df2),dig=0))
+dfwork <- df2[llwork,]
+dftest <- df2[-llwork,]
+
+dfwork2 <- dcon[llwork,]
+dftest2 <- dcon[-llwork,]
+
+# Weights
+weights<- ifelse(dfwork$Attrition == "No",10, 0.0001)  
+
+```
+
+# Creating models
+
+## Model 1
+
+```{r}
+
+attrition.fda <- fda(Attrition~Age+MonthlyIncome+NumCompaniesWorked+TotalWorkingYears+YearsAtCompany*SalaryHikePerYear+YearsInCurrentRole+YearsSinceLastPromotion+AverageYearsCompany, dfwork, weights)
+
+dfwork[,11]  <- predict(attrition.fda, dfwork)
+dftest[,11]  <- predict(attrition.fda, dftest)
+
+names(dfwork)[11]<-"Prediction"
+names(dftest)[11]<-"Prediction"
+
+
+#confusion matrix
+MCw<-table(dfwork[,1], dfwork[,11]); MCw
+MC<-table(dftest[,1], dftest[,11]); MC
+
+#accuracy
+accuracyw<-sum(diag(MCw))/dim(dfwork)[1]; accuracyw
+accuracy<-sum(diag(MC))/dim(dftest)[1]; accuracy
+
+# Precision - Yes
+precisionw<-diag(MCw)[2]/rowSums(MCw)[2]; precisionw
+precision<-diag(MC)[2]/rowSums(MC)[2]; precision
+
+#recallPositive
+recallw<-diag(MCw)[2]/colSums(MCw)[2]; recallw
+recall<-diag(MC)[2]/colSums(MC)[2]; recall
+
+# F1
+f1w<-(2*precisionw*recallw)/(precisionw+recallw); f1w
+f1<-(2*precision*recall)/(precision+recall); f1
+
+```
+
+## Model 2
+
+```{r}
+attrition.fda1 <- fda(Attrition~Age+MonthlyIncome+NumCompaniesWorked+TotalWorkingYears+YearsAtCompany+SalaryHikePerYear+YearsInCurrentRole+YearsSinceLastPromotion+AverageYearsCompany, dfwork, weights)
+
+dfwork[,11]  <- predict(attrition.fda1, dfwork)
+dftest[,11]  <- predict(attrition.fda1, dftest)
+
+names(dfwork)[11]<-"Prediction"
+names(dftest)[11]<-"Prediction"
+
+
+#confusion matrix
+MCw<-table(dfwork[,1], dfwork[,11]); MCw
+MC<-table(dftest[,1], dftest[,11]); MC
+
+#accuracy
+accuracyw<-sum(diag(MCw))/dim(dfwork)[1]; accuracyw
+accuracy<-sum(diag(MC))/dim(dftest)[1]; accuracy
+
+# Precision - Yes
+precisionw<-diag(MCw)[2]/rowSums(MCw)[2]; precisionw
+precision<-diag(MC)[2]/rowSums(MC)[2]; precision
+
+#recallPositive
+recallw<-diag(MCw)[2]/colSums(MCw)[2]; recallw
+recall<-diag(MC)[2]/colSums(MC)[2]; recall
+
+# F1
+f1w<-(2*precisionw*recallw)/(precisionw+recallw); f1w
+f1<-(2*precision*recall)/(precision+recall); f1
+
+```
+
+## Model 3
+
+```{r}
+  
+attrition.fda2 <- fda(Attrition~Age+MonthlyIncome+NumCompaniesWorked+PercentSalaryHike+TotalWorkingYears+TrainingTimesLastYear+YearsAtCompany+YearsInCurrentRole+YearsSinceLastPromotion+YearsWithCurrManager+SalaryHikePerYear+AverageYearsCompany, dfwork2, weights)
+
+dfwork2[,15]  <- predict(attrition.fda2, dfwork2)
+dftest2[,15]  <- predict(attrition.fda2, dftest2)
+
+names(dfwork2)[15]<-"Prediction"
+names(dftest2)[15]<-"Prediction"
+
+
+#confusion matrix
+MCw<-table(dfwork2[,1], dfwork2[,15]); MCw
+MC<-table(dftest2[,1], dftest2[,15]); MC
+
+#accuracy
+accuracyw<-sum(diag(MCw))/dim(dfwork2)[1]; accuracyw
+accuracy<-sum(diag(MC))/dim(dftest2)[1]; accuracy
+
+# Precision - Yes
+precisionw<-diag(MCw)[2]/rowSums(MCw)[2]; precisionw
+precision<-diag(MC)[2]/rowSums(MC)[2]; precision
+
+#recallPositive
+recallw<-diag(MCw)[2]/colSums(MCw)[2]; recallw
+recall<-diag(MC)[2]/colSums(MC)[2]; recall
+
+# F1
+f1w<-(2*precisionw*recallw)/(precisionw+recallw); f1w
+f1<-(2*precision*recall)/(precision+recall); f1
+
+```

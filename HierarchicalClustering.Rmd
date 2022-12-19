@@ -7,7 +7,7 @@ editor_options:
   chunk_output_type: console
 ---
 
-# Retrieve the data saved AFTER the profiling practice, this means data already cleaned
+# 0 - Import pre-processed data set
 
 ```{r, echo=FALSE}
 
@@ -16,19 +16,17 @@ library(cluster)
 library(ggplot2)
 
 load("./Data/df_preprocessed_IBM_Employees.Rdata") 
-names(df) 
 
-dim(df)
-summary(df)
+df0<-df
 
 # Remove usless variables.
-df<-subset(df, select = -c(DailyRate,HourlyRate,MonthlyRate,AgeToJubilation,TrainingTimesLastYear,DistanceFromHome))
+df<-subset(df, select = -c(DailyRate,HourlyRate,MonthlyRate,AgeToJubilation,TrainingTimesLastYear,MultivariateOutlier, Attrition, PerformanceRating))
 
 dcon<-df[!sapply(df, is.factor)]
 
 ```
 
-# Transform and Normalize
+# 1 - Transform and Normalize
 
 ```{r}
 
@@ -68,137 +66,144 @@ boxplot(df_norm)
 
 ```
 
-# CLUSTERING
+# 2 - Add categorical variables to final Dataframe
 
 ```{r, echo=FALSE}
 
-df_norm[c(1:5),]
-dist(df_norm[c(1:5),])
-# HIERARCHICAL CLUSTERING (Euclidean distance)
-d<-dist(df_norm) 
-h1<- hclust(d,method="ward.D")
+dcat<-df[sapply(df, is.factor)]
 
-options(max.print=2000)
-h1$height # height of the tree branches
-plot(h1)
-rect.hclust(h1, h=45.23490403,border="green") # 6 clusters
-rect.hclust(h1, h=50.06270659,border="blue") # 4 clusters
-rect.hclust(h1, h=53.16115400,border="red") # 3 clusters
-rect.hclust(h1, h=76.99302916,border="orange") # 3 clusters
-rect.hclust(h1, h=186.14590016,border="purple") # 2 clusters
+for (colname in colnames(dcat)) { df_norm[,colname]<- dcat[,colname] }
 
-
-```
-
-# MEANS per CLUSTER
-
-```{r, echo=FALSE}
-# WHERE ARE THER THE LEAPS? WHERE WILL YOU CUT THE DENDOGRAM?, HOW MANY CLASSES WILL YOU OBTAIN?
-nc = 6
-c1<-cutree(h1,nc)
-df$cluster<-c1
-
-cdg <- aggregate(as.data.frame(dcon),list(c1),mean) 
-cdg
-
-dcon$cluster<-as.factor(c1)
-
-table(c1) 
-# LETS SEE THE PARTITION VISUALLY
-#ggplot(df, aes(MonthlyIncome, Age, color=cluster, shape=Attrition))+
-#   geom_point()
-
-
-ggpairs(dcon, columns=c(1:4,12), aes(color=cluster, alpha=0.5), progress=F)
-ggpairs(dcon, columns=c(5:8,12), aes(color=cluster, alpha=0.5), progress=F)
-ggpairs(dcon, columns=c(9:12), aes(color=cluster, alpha=0.5),progress=F)
-
-
-```
-
-# Mixed variables
-
-```{r}
-#move to Gower mixed distance to deal 
-#simoultaneously with numerical and qualitative data
-dcategoriques<-df[sapply(df, is.factor)]
-#dcategoriques<-subset(dcategoriques, select = -c(DistanceFromHome,Education, EducationField, JobLevel, JobRole))
-dcategoriques<-subset(dcategoriques, select = -c(Attrition))
-names(dcategoriques)
-
-#join the dcategoriques with the filtered df_norm into a new df ->df_join
 colnames(df_norm)
+boxplot(df_norm) 
 
-df_join <- df_norm
+```
 
-for(i in colnames(dcategoriques)){ df_join[,i] <- dcategoriques[,i] }
-colnames(df_join)
+# 3 - Clustering
 
-#dissimilarity matrix
+```{r, echo=FALSE}
 
-dissimMatrix <- daisy(df_join, metric = "gower", stand=TRUE)
+# HIERARCHICAL CLUSTERING (Euclidean distance)
+dissimMatrix <- daisy(df_norm, metric = "gower", stand=TRUE)
 distMatrix<-dissimMatrix^2
-
+summary(df_norm)
 h1<-hclust(distMatrix,method="ward.D")
-
 options(max.print=2000)
-h1$height # height of the tree branches
+options(scipen=999)
+h1$height
+
 plot(h1)
-rect.hclust(h1, h=4.718142549,border="green") # 6 clusters
-rect.hclust(h1, h=5.623154687,border="blue") # 6 clusters
-rect.hclust(h1, h=9.018713628,border="blue") # 3 clusters
-rect.hclust(h1, h=17.808008541,border="red") # 2 clusters
-rect.hclust(h1, h=28.610542954,border="orange") # 2 clusters
+rect.hclust(h1, h=6.527319433,border="purple") # 6 clusters
+rect.hclust(h1, h=9.102671692,border="blue") # 5 clusters
+rect.hclust(h1, h=27.568622630,border="orange") # 2 clusters
 
-plot(h1) 
-c2<-cutree(h1,5)
-# Add cluster classification + Attrtion after clustering
-df_join$clust<-as.factor(c2)
-df_join$Attrition<-df$Attrition
+df_norm$Attrition<-df0$Attrition
 
-#Attrition
-boxplot(df_join$Attrition~df_join$clust)
-table(df_join$Attrition,df_join$clust)
+```
 
-#MonthlyIncome 
-boxplot(df_join$MonthlyIncome~c2, horizontal=TRUE)
+# 4 - Profiling
 
+## 4.1 - 2 clusters
 
-ggpairs(df_pro, columns = c(2,1:4), aes(color = clust, alpha = 0.5),progress = FALSE)
-ggpairs(df_pro, columns = c(2,5:7), aes(color = clust, alpha = 0.5),progress = FALSE)
-ggpairs(df_pro, columns = c(2,8:10), aes(color = clust, alpha = 0.5),progress = FALSE)
-ggpairs(df_pro, columns = c(2,11:13), aes(color = clust, alpha = 0.5),progress = FALSE)
-ggpairs(df_pro, columns = c(2,14:17), aes(color = clust, alpha = 0.5),progress = FALSE)
-ggpairs(df_pro, columns = c(2,18:21), aes(color = clust, alpha = 0.5),progress = FALSE)
-ggpairs(df_pro, columns = c(2,22:25), aes(color = clust, alpha = 0.5),progress = FALSE)
-ggpairs(df_pro, columns = c(2,26:29), aes(color = clust, alpha = 0.5),progress = FALSE)
-ggpairs(df_pro, columns = c(2,30:32), aes(color = clust, alpha = 0.5),progress = FALSE)
+```{r, echo=FALSE}
+df_norm$clust<-as.factor(cutree(h1,2))
+
+#plot numeric results
+ggpairs(df_norm, columns=c(1:4), aes(color = clust, alpha = 0.5),progress = FALSE)
+ggpairs(df_norm, columns=c(5:8), aes(color = clust, alpha = 0.5),progress = FALSE)
+ggpairs(df_norm, columns=c(9:11), aes(color = clust, alpha = 0.5),progress = FALSE)
 
 
-ggpairs(df_pro, columns = c(2,4), aes(color = clust, alpha = 0.5),progress = FALSE)
 
-table(df_pro[df_pro$clust==1,]$Attrition)
-table(df_pro[df_pro$clust==2,]$Attrition)
-table(df_pro[df_pro$clust==3,]$Attrition)
+ggpp <- function(colName){
+  p<-ggplot(df_norm,aes(x= df_norm[,colName],  group=clust)) + 
+      geom_bar(
+        aes(y=..prop..,fill = factor(..x..,labels=levels(df_norm[,colName]))), 
+        stat="count") +
+      geom_text(
+        aes(label=scales::percent(..prop..),
+             y= ..prop..), 
+        stat= "count",
+        vjust = -.5) +
+      labs(y = "Percent", fill=colName) +
+      facet_grid(~clust) +
+      scale_y_continuous(labels = scales::percent)+
+  theme(axis.text.x=element_blank(),
+        axis.ticks.x=element_blank() 
+        )
+  return(p)
+}
 
-table(df_pro[df_pro$clust==1,]$Department)
-table(df_pro[df_pro$clust==2,]$Department)
-table(df_pro[df_pro$clust==3,]$Department)
+for (colname in colnames(df_norm[,c(12:29)])) { plot(ggpp(colname)) }
+
+```
+
+## 4.2 - 5 clusters
+
+```{r, echo=FALSE}
+df_norm$clust<-as.factor(cutree(h1,5))
+
+#plot numeric results
+ggpairs(df_norm, columns=c(1:4), aes(color = clust, alpha = 0.5),progress = FALSE)
+ggpairs(df_norm, columns=c(5:8), aes(color = clust, alpha = 0.5),progress = FALSE)
+ggpairs(df_norm, columns=c(9:11), aes(color = clust, alpha = 0.5),progress = FALSE)
 
 
-pairs(dcon[,1:7], col=c2)
 
-plot(RatiFin,Estalvi,col=c2,main="Clustering of credit data in 4
-classes") legend("topright",levels(as.factor(c2)),pch=1,col=c(1:4),
-cex=0.6)
+ggpp <- function(colName){
+  p<-ggplot(df_norm,aes(x= df_norm[,colName],  group=clust)) + 
+      geom_bar(
+        aes(y=..prop..,fill = factor(..x..,labels=levels(df_norm[,colName]))), 
+        stat="count") +
+      geom_text(
+        aes(label=scales::percent(..prop..),
+             y= ..prop..), 
+        stat= "count",
+        vjust = -.5) +
+      labs(y = "Percent", fill=colName) +
+      facet_grid(~clust) +
+      scale_y_continuous(labels = scales::percent)+
+  theme(axis.text.x=element_blank(),
+        axis.ticks.x=element_blank() 
+        )
+  return(p)
+}
 
-cdg \<- aggregate(as.data.frame(dcon),list(c2),mean) cdg
+for (colname in colnames(df_norm[,c(12:29)])) { plot(ggpp(colname)) }
 
-plot(Edad, Gastos, col= c2) points(cdg[,4],cdg[,5],pch=16,col="orange")
-text(cdg[,4],cdg[,5], labels=cdg[,1], pos=2, font=2, cex=0.7,
-col="orange")
+```
 
-potencials\<-c(3,4,6,7,10,11) pairs(dcon[,potencials],col=c2)
+## 4.3 - 6 clusters
 
-#Profiling plots
+```{r, echo=FALSE}
+df_norm$clust<-as.factor(cutree(h1,6))
+
+#plot numeric results
+ggpairs(df_norm, columns=c(1:4), aes(color = clust, alpha = 0.5),progress = FALSE)
+ggpairs(df_norm, columns=c(5:8), aes(color = clust, alpha = 0.5),progress = FALSE)
+ggpairs(df_norm, columns=c(9:11), aes(color = clust, alpha = 0.5),progress = FALSE)
+
+
+
+ggpp <- function(colName){
+  p<-ggplot(df_norm,aes(x= df_norm[,colName],  group=clust)) + 
+      geom_bar(
+        aes(y=..prop..,fill = factor(..x..,labels=levels(df_norm[,colName]))), 
+        stat="count") +
+      geom_text(
+        aes(label=scales::percent(..prop..),
+             y= ..prop..), 
+        stat= "count",
+        vjust = -.5) +
+      labs(y = "Percent", fill=colName) +
+      facet_grid(~clust) +
+      scale_y_continuous(labels = scales::percent)+
+  theme(axis.text.x=element_blank(),
+        axis.ticks.x=element_blank() 
+        )
+  return(p)
+}
+
+for (colname in colnames(df_norm[,c(12:29)])) { plot(ggpp(colname)) }
+
 ```

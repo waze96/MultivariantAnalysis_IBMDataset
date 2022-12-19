@@ -17,10 +17,6 @@ packages.check <- lapply(requiredPackages, FUN = function(x) {
   }
 })
 
-PROJECT_PATH="C:/Users/david/Documents/GitHub/MultivariantAnalysis_IBMDataset"
-
-setwd(PROJECT_PATH)
-
 ```
 
 # Content Table
@@ -65,9 +61,10 @@ plotFreq <- function(df, feature, xlabel) {
   plot<-ggplot(df, aes(x=feature)) +
         geom_bar(aes(y =(..count..)/sum(..count..))) +
         geom_text(aes( label = scales::percent((..count..)/sum(..count..)),
-                   y= ((..count..)/sum(..count..)) ), stat= "count", vjust = -0.25, color="#000000", size=3) +
+                   y= ((..count..)/sum(..count..)) ), stat= "count", hjust=1.25, vjust = -1, color="#ffffff", size=3) +
         labs(x=xlabel, y='Percent')+
-        scale_y_continuous(labels = scales::percent)
+        scale_y_continuous(labels = scales::percent) +
+  coord_flip()
   return(plot)
 }
 
